@@ -13,14 +13,17 @@ from transformers import (
     HfArgumentParser,
     TrainingArguments,
     pipeline,
-    logging
+    logging,
+    EarlyStoppingCallback
 )
 from peft import LoraConfig
 from trl import SFTTrainer
 import transformers
 from datasets import load_dataset
 
-data_folder = 'data/ubuntu/'
+data_folder = 'chat-backbone/'
+# model_name = 'meta-llama/Llama-2-7b-chat-hf'
+model_name = 'mistralai/Mixtral-8x7B-Instruct-v0.1'
 
 
 class CustomDataset(Dataset):
@@ -59,8 +62,6 @@ class PadCollate():
         return x_encodings
 
 
-model_name = 'meta-llama/Llama-2-7b-chat-hf'
-
 # Setup based on
 # https://artificialcorner.com/mastering-llama-2-a-comprehensive-guide-to-fine-tuning-in-google-colab-bedfcc692b7f
 # Set base model loading in 4-bits
@@ -92,22 +93,18 @@ model.config.use_cache = False
 model.config.pretraining_tp = 1
 
 tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-tokenizer.pad_token = "<PAD>"
+tokenizer.pad_token = tokenizer.eos_token
 tokenizer.paddding_side = "right"
 
 wandb_project = 'social-ai'
-wandb_run_name = 'llama-2-7b-blended'
+wandb_run_name = 'mixtral-8x7B-blended'
 
 wandb.init(project=wandb_project, name=wandb_run_name)
 
 # Load the data
-train_texts = pd.read_csv(data_folder + 'train_dataset.csv')
-val_texts = pd.read_csv(data_folder + 'val_dataset.csv')
-test_texts = pd.read_csv(data_folder + 'test_dataset.csv')
-
-dataset = load_dataset('csv', data_files={'train': data_folder + 'train_dataset.csv',
-                                          'validation': data_folder + 'val_dataset.csv',
-                                          'test': data_folder + 'test_dataset.csv'})
+dataset = load_dataset('csv', data_files={'train': data_folder + 'train_dataset_mistral.csv',
+                                          'validation': data_folder + 'val_dataset_mistral.csv',
+                                          'test': data_folder + 'test_dataset_mistral.csv'})
 
 
 ppd = PadCollate(tokenizer.pad_token_id)
@@ -126,17 +123,27 @@ peft_config = LoraConfig(
     inference_mode=False,
     bias="none",
     task_type="CAUSAL_LM",
+    target_modules=[
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj",
+        "gate_proj",
+        "up_proj",
+        "down_proj",
+        "lm_head",
+    ],
 )
 
-output_dir = "./results"
+output_dir = "./mistral/results"
 final_checkpoint_dir = os.path.join(output_dir, "final_checkpoint")
 
-num_train_epochs = 1
+num_train_epochs = 30
 max_steps = -1
 bf16 = True
 fp16 = False
-per_device_train_batch_size = 4
-per_device_eval_batch_size = 4
+per_device_train_batch_size = 2
+per_device_eval_batch_size = 2
 gradient_accumulation_steps = 8
 max_grad_norm = 0.1
 # optim = "paged_adamw_32bit"
@@ -147,8 +154,12 @@ warmup_ratio = 0.03
 weight_decay = 0.01
 group_by_length = True
 gradient_checkpointing = True
-save_steps = 50
-logging_steps = 10
+save_steps = 60
+logging_steps = 20
+
+early_stopping_callback = EarlyStoppingCallback(
+    early_stopping_patience=4,
+    early_stopping_threshold=0)
 
 training_arguments = TrainingArguments(
     output_dir=output_dir,
@@ -168,6 +179,10 @@ training_arguments = TrainingArguments(
     group_by_length=group_by_length,
     lr_scheduler_type=lr_scheduler_type,
     report_to=["wandb"],
+    load_best_model_at_end=True,
+    metric_for_best_model="eval_loss",
+    do_eval=True,
+    evaluation_strategy="steps",
 )
 
 max_seq_length = 1024
@@ -183,6 +198,7 @@ trainer = SFTTrainer(
     tokenizer=tokenizer,
     args=training_arguments,
     packing=packing,
+    callbacks=[early_stopping_callback],
 )
 
 transformers.logging.set_verbosity_info()

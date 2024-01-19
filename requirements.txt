@@ -27,11 +27,11 @@ kiwisolver==1.4.4
 matplotlib==3.7.2
 multidict==6.0.4
 nltk==3.6.5
-numpy==1.25.2
+numpy~=1.26.2
 openai==0.27.0
 outcome==1.2.0
 packaging==23.0
-pandas==2.0.3
+pandas~=2.1.4
 patsy==0.5.3
 Pillow==8.4.0
 psycopg2-binary==2.9.5
@@ -66,3 +66,6 @@ wsproto==1.2.0
 yarl==1.8.2
 yellowbrick==1.5
 zipp==3.6.0
+
+torch~=2.1.2+cu118
+transformers~=4.36.2
