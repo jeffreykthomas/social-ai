@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Need State Monitor</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .agent-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        
+        .agent-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            transition: transform 0.2s;
+        }
+        
+        .agent-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .agent-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        .need-states {
+            margin-bottom: 20px;
+        }
+        
+        .need-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .need-label {
+            width: 100px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .need-bar-container {
+            flex: 1;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            margin: 0 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .need-bar {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+        
+        .need-bar::after {
+            content: attr(data-value);
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8em;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .need-critical { background: #e74c3c; }
+        .need-low { background: #f39c12; }
+        .need-moderate { background: #f1c40f; }
+        .need-satisfied { background: #3498db; }
+        .need-full { background: #27ae60; }
+        
+        .internal-monologue {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .monologue-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .thought {
+            font-size: 0.9em;
+            color: #555;
+            margin-bottom: 5px;
+            padding: 5px;
+            background: white;
+            border-radius: 4px;
+            border-left: 3px solid #3498db;
+        }
+        
+        .thought.need-awareness {
+            border-left-color: #e74c3c;
+        }
+        
+        .thought.prediction {
+            border-left-color: #9b59b6;
+        }
+        
+        .thought.social-modeling {
+            border-left-color: #27ae60;
+        }
+        
+        .thought.decision {
+            border-left-color: #f39c12;
+        }
+        
+        .predictions {
+            background: #ecf0f1;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .predictions-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .prediction-item {
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .prediction-event {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .prediction-probability {
+            background: #3498db;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-right: 10px;
+        }
+        
+        .prediction-impacts {
+            font-size: 0.85em;
+            color: #666;
+        }
+        
+        .social-models {
+            background: #e8f5e9;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .social-models-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .other-agent-model {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 0 15px 10px 0;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 5px;
+        }
+        
+        .timestamp {
+            font-size: 0.8em;
+            color: #999;
+            text-align: right;
+        }
+        
+        @media (max-width: 768px) {
+            .agent-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AI Playground: Need-Based Predictive Agents</h1>
+            <p>Monitor agent need states, predictions, and internal reasoning in real-time</p>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color need-critical"></div>
+                    <span>Critical (&lt;0.3)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color need-low"></div>
+                    <span>Low (0.3-0.5)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color need-moderate"></div>
+                    <span>Moderate (0.5-0.7)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color need-satisfied"></div>
+                    <span>Satisfied (0.7-0.9)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color need-full"></div>
+                    <span>Full (&gt;0.9)</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="agent-grid" id="agentGrid">
+            <!-- Agent cards will be dynamically inserted here -->
+        </div>
+    </div>
+    
+    <script>
+        // Sample data structure for demonstration
+        const sampleAgentData = {
+            "Isabella Rodriguez": {
+                needs: {
+                    connection: 0.25,
+                    safety: 0.8,
+                    approval: 0.4,
+                    empathy: 0.35,
+                    fun: 0.2,
+                    attention: 0.5,
+                    achievement: 0.6,
+                    autonomy: 0.7,
+                    purpose: 0.55
+                },
+                monologue: [
+                    { type: "need-awareness", content: "My connection is getting low (0.25)" },
+                    { type: "prediction", content: "I predict conversation_starts will happen soon" },
+                    { type: "social-modeling", content: "I think Maria needs empathy based on their quiet behavior" },
+                    { type: "decision", content: "I should initiate_conversation to improve my connection" }
+                ],
+                predictions: [
+                    { event: "conversation_starts", probability: 0.7, impacts: "connection↑, fun↑" },
+                    { event: "receive_help", probability: 0.3, impacts: "safety↑, connection↑" }
+                ],
+                socialModels: [
+                    "Maria: likely needs empathy (low)",
+                    "Klaus: seems to need achievement (moderate)"
+                ]
+            },
+            "Maria Lopez": {
+                needs: {
+                    connection: 0.6,
+                    safety: 0.7,
+                    approval: 0.5,
+                    empathy: 0.2,
+                    fun: 0.4,
+                    attention: 0.3,
+                    achievement: 0.8,
+                    autonomy: 0.6,
+                    purpose: 0.7
+                },
+                monologue: [
+                    { type: "need-awareness", content: "My empathy is getting low (0.20)" },
+                    { type: "need-awareness", content: "I'm feeling the lack of attention" },
+                    { type: "prediction", content: "If give_help occurs, my purpose will likely increase" }
+                ],
+                predictions: [
+                    { event: "give_help", probability: 0.6, impacts: "purpose↑, connection↑, empathy↑" },
+                    { event: "solo_activity", probability: 0.4, impacts: "autonomy↑" }
+                ],
+                socialModels: [
+                    "Isabella: needs connection (critical)",
+                    "Klaus: appears satisfied overall"
+                ]
+            }
+        };
+        
+        function getNeedClass(value) {
+            if (value < 0.3) return 'need-critical';
+            if (value < 0.5) return 'need-low';
+            if (value < 0.7) return 'need-moderate';
+            if (value < 0.9) return 'need-satisfied';
+            return 'need-full';
+        }
+        
+        function getThoughtClass(type) {
+            return `thought ${type.replace('_', '-')}`;
+        }
+        
+        function createAgentCard(name, data) {
+            const card = document.createElement('div');
+            card.className = 'agent-card';
+            
+            // Agent name
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'agent-name';
+            nameDiv.textContent = name;
+            card.appendChild(nameDiv);
+            
+            // Need states
+            const needsDiv = document.createElement('div');
+            needsDiv.className = 'need-states';
+            
+            for (const [need, value] of Object.entries(data.needs)) {
+                const needItem = document.createElement('div');
+                needItem.className = 'need-item';
+                
+                const label = document.createElement('div');
+                label.className = 'need-label';
+                label.textContent = need;
+                
+                const barContainer = document.createElement('div');
+                barContainer.className = 'need-bar-container';
+                
+                const bar = document.createElement('div');
+                bar.className = `need-bar ${getNeedClass(value)}`;
+                bar.style.width = `${value * 100}%`;
+                bar.setAttribute('data-value', value.toFixed(2));
+                
+                barContainer.appendChild(bar);
+                needItem.appendChild(label);
+                needItem.appendChild(barContainer);
+                needsDiv.appendChild(needItem);
+            }
+            
+            card.appendChild(needsDiv);
+            
+            // Internal monologue
+            const monologueDiv = document.createElement('div');
+            monologueDiv.className = 'internal-monologue';
+            
+            const monologueTitle = document.createElement('div');
+            monologueTitle.className = 'monologue-title';
+            monologueTitle.textContent = 'Internal Monologue';
+            monologueDiv.appendChild(monologueTitle);
+            
+            data.monologue.forEach(thought => {
+                const thoughtDiv = document.createElement('div');
+                thoughtDiv.className = getThoughtClass(thought.type);
+                thoughtDiv.textContent = thought.content;
+                monologueDiv.appendChild(thoughtDiv);
+            });
+            
+            card.appendChild(monologueDiv);
+            
+            // Predictions
+            const predictionsDiv = document.createElement('div');
+            predictionsDiv.className = 'predictions';
+            
+            const predictionsTitle = document.createElement('div');
+            predictionsTitle.className = 'predictions-title';
+            predictionsTitle.textContent = 'Current Predictions';
+            predictionsDiv.appendChild(predictionsTitle);
+            
+            data.predictions.forEach(pred => {
+                const predItem = document.createElement('div');
+                predItem.className = 'prediction-item';
+                
+                const event = document.createElement('span');
+                event.className = 'prediction-event';
+                event.textContent = pred.event;
+                
+                const prob = document.createElement('span');
+                prob.className = 'prediction-probability';
+                prob.textContent = `${Math.round(pred.probability * 100)}%`;
+                
+                const impacts = document.createElement('span');
+                impacts.className = 'prediction-impacts';
+                impacts.textContent = `→ ${pred.impacts}`;
+                
+                predItem.appendChild(event);
+                predItem.appendChild(prob);
+                predItem.appendChild(impacts);
+                predictionsDiv.appendChild(predItem);
+            });
+            
+            card.appendChild(predictionsDiv);
+            
+            // Social models
+            const socialDiv = document.createElement('div');
+            socialDiv.className = 'social-models';
+            
+            const socialTitle = document.createElement('div');
+            socialTitle.className = 'social-models-title';
+            socialTitle.textContent = 'Models of Others';
+            socialDiv.appendChild(socialTitle);
+            
+            data.socialModels.forEach(model => {
+                const modelDiv = document.createElement('div');
+                modelDiv.className = 'other-agent-model';
+                modelDiv.textContent = model;
+                socialDiv.appendChild(modelDiv);
+            });
+            
+            card.appendChild(socialDiv);
+            
+            // Timestamp
+            const timestamp = document.createElement('div');
+            timestamp.className = 'timestamp';
+            timestamp.textContent = new Date().toLocaleTimeString();
+            card.appendChild(timestamp);
+            
+            return card;
+        }
+        
+        function updateDisplay() {
+            const grid = document.getElementById('agentGrid');
+            grid.innerHTML = '';
+            
+            for (const [name, data] of Object.entries(sampleAgentData)) {
+                grid.appendChild(createAgentCard(name, data));
+            }
+        }
+        
+        // Initial display
+        updateDisplay();
+        
+        // WebSocket connection for real-time updates (when integrated)
+        function connectWebSocket() {
+            const ws = new WebSocket('ws://localhost:8000/ws/agent_monitor');
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                // Update display with real agent data
+                updateDisplay(data);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+            
+            ws.onclose = function() {
+                // Attempt to reconnect after 5 seconds
+                setTimeout(connectWebSocket, 5000);
+            };
+        }
+        
+        // Uncomment when WebSocket endpoint is ready
+        // connectWebSocket();
+    </script>
+</body>
+</html>
