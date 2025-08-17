@@ -110,6 +110,18 @@ To customize the initialization by authoring your own history file, place your f
 For a more involved customization, you will need to author your own base simulation files. The most straightforward approach would be to copy and paste an existing base simulation folder, renaming and editing it according to your requirements. This process will be simpler if you decide to keep the agent names unchanged. However, if you wish to change their names or increase the number of agents that the Smallville map can accommodate, you might need to directly edit the map using the [Tiled](https://www.mapeditor.org/) map editor.
 
 
+## Predictive Agents Extensions (Time Allocation, Tools, and Social Interaction)
+
+- **Time-allocation predictions**: Agents now predict how much time to spend on each task they undertake. The objective is to maximize average overall need fulfillment across a “day” (their scheduled tasks), balancing marginal fulfillment per minute against opportunity cost.
+- **Daily schedules**: Each agent follows a schedule of tasks. They choose the next task and time budget based on predicted value-density (expected fulfillment per unit time), deadlines, and switching costs. Tasks can be deferred or truncated when better opportunities emerge.
+- **Tools and transactions**: Each agent has a set of tool-calling abilities. Tools represent one side of a transaction (e.g., `purchase_groceries` vs `sell_groceries`). Agents can communicate their capabilities, inquire about others’ capabilities, and coordinate to complete complementary transactions.
+- **Interaction initiation**: To start an interaction, an agent identifies a candidate partner with the required capability, sends a capability inquiry/offer, negotiates time and scope, then executes the transaction if mutually beneficial. If no partner is suitable, agents may self-serve when possible or re-plan.
+- **Social notes and reputation**: Agents maintain per-agent notes such as “can sell groceries”, “very giving of emotional support”, “skilled at providing empathy”, “can be angry”. Notes are updated after each interaction and influence future partner selection.
+- **Exit behavior and consequences**: Agents may exit at any point. If predicted value drops below alternatives, they aim to exit as soon as the current transaction completes. Abrupt exits are recorded by partners as “may leave unpredictably”, reducing future willingness to engage.
+- **Post-interaction evaluation**: After each interaction, agents spend a brief evaluation period to compare predicted vs actual outcomes, update notes, and adjust future time allocations.
+
+For implementation details, configuration, and API additions, see `PREDICTIVE_AGENTS_IMPLEMENTATION.md`.
+
 ## <img src="https://joonsungpark.s3.amazonaws.com:443/static/assets/characters/profile/Eddy_Lin.png" alt="Generative Eddy">   Authors and Citation 
 
 **Authors:** Joon Sung Park, Joseph C. O'Brien, Carrie J. Cai, Meredith Ringel Morris, Percy Liang, Michael S. Bernstein
