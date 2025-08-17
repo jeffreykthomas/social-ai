@@ -1,0 +1,6 @@
+[submodule "llama2c"]
+	path = llama2c
+	url = https://github.com/karpathy/llm.c
+[submodule "dia"]
+	path = dia
+	url = https://github.com/nari-labs/dia.git
