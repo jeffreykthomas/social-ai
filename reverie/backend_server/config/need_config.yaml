@@ -1,0 +1,224 @@
+# AI Playground Need-Based Agent Configuration
+# This file defines the parameters for the predictive need-based agent system
+
+# Need definitions and initial values
+needs:
+  connection:
+    description: "Desire for meaningful relationships and belonging"
+    initial_value: 0.5
+    decay_rate: 0.01  # per timestep
+    priority_weight: 1.5
+    critical_threshold: 0.3
+    
+  safety:
+    description: "Need for physical and emotional security"
+    initial_value: 0.8
+    decay_rate: 0.005
+    priority_weight: 2.0
+    critical_threshold: 0.4
+    
+  approval:
+    description: "Desire for recognition and validation from others"
+    initial_value: 0.6
+    decay_rate: 0.008
+    priority_weight: 1.2
+    critical_threshold: 0.3
+    
+  empathy:
+    description: "Need to understand and be understood emotionally"
+    initial_value: 0.4
+    decay_rate: 0.012
+    priority_weight: 1.0
+    critical_threshold: 0.25
+    
+  fun:
+    description: "Desire for joy, play, and entertainment"
+    initial_value: 0.3
+    decay_rate: 0.015
+    priority_weight: 0.8
+    critical_threshold: 0.2
+    
+  attention:
+    description: "Need to be noticed and acknowledged"
+    initial_value: 0.5
+    decay_rate: 0.01
+    priority_weight: 1.0
+    critical_threshold: 0.3
+    
+  achievement:
+    description: "Desire to accomplish goals and feel competent"
+    initial_value: 0.5
+    decay_rate: 0.008
+    priority_weight: 1.1
+    critical_threshold: 0.3
+    
+  autonomy:
+    description: "Need for independence and self-direction"
+    initial_value: 0.7
+    decay_rate: 0.006
+    priority_weight: 1.3
+    critical_threshold: 0.35
+    
+  purpose:
+    description: "Desire for meaning and contribution to something larger"
+    initial_value: 0.6
+    decay_rate: 0.004
+    priority_weight: 1.4
+    critical_threshold: 0.3
+
+# Learning parameters
+learning:
+  # Prediction model learning
+  prediction_learning_rate: 0.1
+  exploration_rate: 0.1
+  
+  # Need impact learning
+  impact_learning_rate: 0.15
+  impact_std_decay: 0.95
+  impact_std_growth: 0.05
+  
+  # Social modeling
+  social_learning_rate: 0.08
+  empathy_accuracy_threshold: 0.7
+  
+  # Memory and history
+  event_sequence_memory: 1000
+  prediction_buffer_size: 100
+  error_history_size: 100
+  internal_monologue_size: 500
+
+# Action selection parameters
+action_selection:
+  # Minimum improvement needed to take action
+  action_threshold: 0.1
+  
+  # Probability thresholds
+  min_event_probability: 0.1
+  confidence_bonus_weight: 0.1
+  
+  # Risk assessment
+  risk_aversion_factor: 1.2
+  uncertainty_penalty: 0.05
+
+# Internal monologue parameters
+monologue:
+  # Thought generation thresholds
+  critical_need_threshold: 0.3
+  thought_frequency: 1.0  # thoughts per timestep
+  
+  # Externalization parameters
+  externalization_threshold: 0.4  # connection need threshold
+  social_proximity_required: true
+  
+  # Thought types and weights
+  thought_type_weights:
+    need_awareness: 0.3
+    prediction: 0.25
+    social_modeling: 0.2
+    decision: 0.15
+    observation: 0.1
+
+# Event impact patterns
+event_impacts:
+  conversation_starts:
+    connection: 0.3
+    attention: 0.2
+    fun: 0.1
+    
+  conversation_ends:
+    connection: -0.1
+    autonomy: 0.1
+    
+  receive_compliment:
+    approval: 0.4
+    connection: 0.1
+    
+  give_help:
+    purpose: 0.3
+    connection: 0.2
+    empathy: 0.2
+    
+  receive_help:
+    safety: 0.2
+    connection: 0.15
+    
+  conflict:
+    safety: -0.3
+    approval: -0.2
+    connection: -0.1
+    
+  solo_activity:
+    autonomy: 0.2
+    achievement: 0.1
+    connection: -0.05
+    
+  group_activity:
+    connection: 0.25
+    fun: 0.3
+    autonomy: -0.1
+    
+  achievement_success:
+    achievement: 0.4
+    approval: 0.2
+    purpose: 0.1
+    
+  achievement_failure:
+    achievement: -0.2
+    approval: -0.1
+    safety: -0.05
+
+# Social interaction parameters
+social:
+  # Modeling other agents
+  initial_need_estimate: 0.5
+  need_estimate_variance: 0.1
+  
+  # Interaction history
+  interaction_history_size: 20
+  relationship_decay_rate: 0.01
+  
+  # Response generation
+  empathy_weight: 0.3
+  reciprocity_weight: 0.4
+  self_interest_weight: 0.3
+
+# Visualization and monitoring
+monitoring:
+  # Update frequencies (in seconds)
+  ui_update_interval: 1.0
+  state_save_interval: 60.0
+  
+  # Display options
+  show_internal_monologue: true
+  show_predictions: true
+  show_social_models: true
+  max_thoughts_displayed: 10
+  max_predictions_displayed: 5
+
+# Educational features
+education:
+  # Explanation generation
+  generate_explanations: true
+  explanation_detail_level: "medium"  # low, medium, high
+  
+  # Learning insights
+  highlight_prediction_errors: true
+  show_learning_progress: true
+  
+  # Interaction guidance
+  suggest_social_strategies: true
+  explain_need_motivations: true
+
+# Performance optimization
+performance:
+  # Parallel processing
+  enable_parallel_predictions: true
+  max_parallel_agents: 10
+  
+  # Caching
+  cache_predictions: true
+  cache_duration: 5.0  # seconds
+  
+  # Resource limits
+  max_memory_per_agent: 100  # MB
+  max_computation_time: 0.1  # seconds per think cycle
