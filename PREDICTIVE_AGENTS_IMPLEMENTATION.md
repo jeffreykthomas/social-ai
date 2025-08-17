@@ -29,6 +29,8 @@ Sophisticated prompt engineering that:
 - Validates responses for consistency with agent's psychological state
 - Provides multiple prompt templates for different scenarios
 - Ensures agents don't explicitly mention their internal mechanics
+- Models the internal monologue as chain-of-thought style reasoning that remains internal and is only summarized externally
+- Supports a hybrid LLM setup: a local open-source LLM (optionally RL-tuned) for policy and external outputs; internal reasoning can be delegated to an OpenAI GPT-5 API call when enabled
 
 ### 3. Visualization System (`agent_monitor.html`)
 
@@ -87,6 +89,8 @@ Agents make decisions by:
 Agents predict not only which action to take but also how much time to allocate to it. They estimate value-density (expected need fulfillment per unit time) and compare it against alternatives and schedule constraints. If marginal value falls below the best available alternative, agents plan to exit at the next safe breakpoint (e.g., after a transaction completes).
 
 ### Internal Monologue
+
+The internal monologue is akin to chain-of-thought reasoning and is kept internal; only summarized reflections may be externalized.
 
 The continuous thought stream includes:
 - Need awareness thoughts
@@ -235,6 +239,13 @@ Use the API endpoints to:
 - `switch_penalty`: Cost applied when switching tasks or partners
 - `abrupt_exit_penalty`: Reputation impact recorded by partners on abrupt exit
 - `post_interaction_eval_steps`: Time reserved for evaluation after an interaction
+
+### LLM Settings
+- `policy_provider`: `local` (default) or `openai`. Controls which model generates external outputs/actions.
+- `internal_reasoning_provider`: `openai_gpt5` (default) or `local`. Controls which model performs chain-of-thought style internal reasoning.
+- `local_llm_model`: Identifier for the local open-source LLM when `policy_provider=local`.
+- `rl_tuning_enabled`: Whether to apply reinforcement learning updates to the local LLM.
+- `reasoning_summarization`: `on|off` to summarize internal reasoning before any externalization.
 
 ## Integration with Original System
 
