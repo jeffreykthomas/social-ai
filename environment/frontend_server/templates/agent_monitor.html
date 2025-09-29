@@ -269,62 +269,7 @@
     </div>
     
     <script>
-        // Sample data structure for demonstration
-        const sampleAgentData = {
-            "Isabella Rodriguez": {
-                needs: {
-                    connection: 0.25,
-                    safety: 0.8,
-                    approval: 0.4,
-                    empathy: 0.35,
-                    fun: 0.2,
-                    attention: 0.5,
-                    achievement: 0.6,
-                    autonomy: 0.7,
-                    purpose: 0.55
-                },
-                monologue: [
-                    { type: "need-awareness", content: "My connection is getting low (0.25)" },
-                    { type: "prediction", content: "I predict conversation_starts will happen soon" },
-                    { type: "social-modeling", content: "I think Maria needs empathy based on their quiet behavior" },
-                    { type: "decision", content: "I should initiate_conversation to improve my connection" }
-                ],
-                predictions: [
-                    { event: "conversation_starts", probability: 0.7, impacts: "connection↑, fun↑" },
-                    { event: "receive_help", probability: 0.3, impacts: "safety↑, connection↑" }
-                ],
-                socialModels: [
-                    "Maria: likely needs empathy (low)",
-                    "Klaus: seems to need achievement (moderate)"
-                ]
-            },
-            "Maria Lopez": {
-                needs: {
-                    connection: 0.6,
-                    safety: 0.7,
-                    approval: 0.5,
-                    empathy: 0.2,
-                    fun: 0.4,
-                    attention: 0.3,
-                    achievement: 0.8,
-                    autonomy: 0.6,
-                    purpose: 0.7
-                },
-                monologue: [
-                    { type: "need-awareness", content: "My empathy is getting low (0.20)" },
-                    { type: "need-awareness", content: "I'm feeling the lack of attention" },
-                    { type: "prediction", content: "If give_help occurs, my purpose will likely increase" }
-                ],
-                predictions: [
-                    { event: "give_help", probability: 0.6, impacts: "purpose↑, connection↑, empathy↑" },
-                    { event: "solo_activity", probability: 0.4, impacts: "autonomy↑" }
-                ],
-                socialModels: [
-                    "Isabella: needs connection (critical)",
-                    "Klaus: appears satisfied overall"
-                ]
-            }
-        };
+        let agentData = {};
         
         function getNeedClass(value) {
             if (value < 0.3) return 'need-critical';
@@ -458,13 +403,27 @@
             const grid = document.getElementById('agentGrid');
             grid.innerHTML = '';
             
-            for (const [name, data] of Object.entries(sampleAgentData)) {
+            for (const [name, data] of Object.entries(agentData)) {
                 grid.appendChild(createAgentCard(name, data));
             }
         }
         
-        // Initial display
-        updateDisplay();
+        async function fetchAgentStates() {
+            try {
+                const res = await fetch('/api/agent_states/');
+                const json = await res.json();
+                if (json.status === 'success') {
+                    agentData = json.agents || {};
+                    updateDisplay();
+                }
+            } catch (e) {
+                console.error('Failed to fetch agent states', e);
+            }
+        }
+        
+        // Initial fetch and periodic refresh
+        fetchAgentStates();
+        setInterval(fetchAgentStates, 2000);
         
         // WebSocket connection for real-time updates (when integrated)
         function connectWebSocket() {

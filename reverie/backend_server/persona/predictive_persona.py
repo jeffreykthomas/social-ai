@@ -26,37 +26,17 @@ from persona.memory_structures.associative_memory import *
 from persona.memory_structures.scratch import *
 from persona.cognitive_modules.perceive import *
 from persona.cognitive_modules.retrieve import *
+from config.config_loader import get_config
 
 
 class NeedState:
     """Manages an agent's internal need states"""
     
     def __init__(self):
-        # Core needs with initial values
-        self.needs = {
-            'connection': 0.5,
-            'safety': 0.8,
-            'approval': 0.6,
-            'empathy': 0.4,
-            'fun': 0.3,
-            'attention': 0.5,
-            'achievement': 0.5,
-            'autonomy': 0.7,
-            'purpose': 0.6
-        }
-        
-        # Decay rates for each need (per timestep)
-        self.decay_rates = {
-            'connection': 0.01,
-            'safety': 0.005,
-            'approval': 0.008,
-            'empathy': 0.012,
-            'fun': 0.015,
-            'attention': 0.01,
-            'achievement': 0.008,
-            'autonomy': 0.006,
-            'purpose': 0.004
-        }
+        # Load from YAML config
+        config = get_config()
+        self.needs = config.get_initial_needs()
+        self.decay_rates = config.get_decay_rates()
         
         # History for tracking changes
         self.history = []

@@ -10,7 +10,12 @@ Author: AI Playground Team
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from channels.generic.websocket import AsyncWebsocketConsumer
+try:
+    from channels.generic.websocket import AsyncWebsocketConsumer
+except Exception:
+    # Fallback stub when Channels isn't installed; keeps imports working.
+    class AsyncWebsocketConsumer:  # type: ignore
+        pass
 import json
 import asyncio
 from datetime import datetime

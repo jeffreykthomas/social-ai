@@ -14,12 +14,21 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.conf.urls import include, url
-from django.urls import path
+from django.urls import path, re_path
 from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 
 from translator import views as translator_views
+from views_agent_monitor import (
+    agent_monitor_view,
+    get_agent_states,
+    get_agent_details,
+    update_agent_need,
+    trigger_agent_event,
+    get_prediction_explanation,
+    get_learning_progress,
+)
 
 urlpatterns = [
     url(r'^$', translator_views.landing, name='landing'),
@@ -32,4 +41,13 @@ urlpatterns = [
     url(r'^path_tester/$', translator_views.path_tester, name='path_tester'),
     url(r'^path_tester_update/$', translator_views.path_tester_update, name='path_tester_update'),
     path('admin/', admin.site.urls),
+
+    # Predictive agents monitor and APIs
+    path('agent_monitor/', agent_monitor_view, name='agent_monitor'),
+    path('api/agent_states/', get_agent_states, name='api_agent_states'),
+    path('api/agent/<str:agent_name>/', get_agent_details, name='api_agent_details'),
+    path('api/agent/<str:agent_name>/need/', update_agent_need, name='api_update_agent_need'),
+    path('api/trigger_event/', trigger_agent_event, name='api_trigger_event'),
+    path('api/agent/<str:agent_name>/predictions/', get_prediction_explanation, name='api_agent_predictions'),
+    path('api/agent/<str:agent_name>/learning/', get_learning_progress, name='api_agent_learning'),
 ]

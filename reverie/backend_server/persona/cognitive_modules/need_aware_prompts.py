@@ -145,17 +145,23 @@ Your insight:"""
     
     def _load_need_descriptions(self) -> Dict[str, str]:
         """Load descriptions of what each need represents"""
-        return {
-            'connection': "desire for meaningful relationships and belonging",
-            'safety': "need for physical and emotional security",
-            'approval': "desire for recognition and validation from others",
-            'empathy': "need to understand and be understood emotionally",
-            'fun': "desire for joy, play, and entertainment",
-            'attention': "need to be noticed and acknowledged",
-            'achievement': "desire to accomplish goals and feel competent",
-            'autonomy': "need for independence and self-direction",
-            'purpose': "desire for meaning and contribution to something larger"
-        }
+        try:
+            # Lazy import to avoid circular dependency at import time
+            from ...config.config_loader import get_config
+            need_defs = get_config().get_need_definitions()
+            return {k: v.get('description', k) for k, v in need_defs.items()}
+        except Exception:
+            return {
+                'connection': "desire for meaningful relationships and belonging",
+                'safety': "need for physical and emotional security",
+                'approval': "desire for recognition and validation from others",
+                'empathy': "need to understand and be understood emotionally",
+                'fun': "desire for joy, play, and entertainment",
+                'attention': "need to be noticed and acknowledged",
+                'achievement': "desire to accomplish goals and feel competent",
+                'autonomy': "need for independence and self-direction",
+                'purpose': "desire for meaning and contribution to something larger"
+            }
     
     def format_need_states(self, needs: Dict[str, float]) -> str:
         """Format need states for prompt inclusion"""
