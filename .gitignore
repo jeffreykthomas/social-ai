@@ -122,3 +122,7 @@ out/
 *.csv
 chat-backbone/*.csv
 chat-backbone/*.pt
+
+# Personal files and notebooks
+chat-backbone/*.docx
+chat-backbone/playground.ipynb
