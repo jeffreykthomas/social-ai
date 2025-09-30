@@ -18,12 +18,11 @@ from persona import Persona  # Original persona class
 from cognitive_modules.need_aware_prompts import create_need_aware_prompt, validate_llm_response
 from config.config_loader import get_config
 
-# Import OpenAI integration from existing system
+# Local reasoning model
 import sys
 sys.path.append('../')
-from utils import openai_api_key
-import openai
-openai.api_key = openai_api_key
+from llm_client import LLMConfig, get_client
+from episode_logger import EpisodeLogger
 
 
 class PersonaManager:
@@ -41,6 +40,23 @@ class PersonaManager:
         self.use_predictive = use_predictive
         self.agents: Dict[str, Any] = {}  # agent_name -> agent instance
         self.config = get_config()
+
+        llm_params = self.config.get_llm_params()
+        if not llm_params.get('model_name'):
+            raise ValueError("llm.model_name must be configured in need_config.yaml")
+
+        self._llm_config = LLMConfig(
+            model_name=llm_params['model_name'],
+            device=llm_params.get('device'),
+            dtype=llm_params.get('dtype', 'bfloat16'),
+            max_new_tokens=llm_params.get('max_new_tokens', 256),
+            temperature=llm_params.get('temperature', 0.7),
+            top_p=llm_params.get('top_p', 0.9),
+            repetition_penalty=llm_params.get('repetition_penalty', 1.05),
+        )
+        self._llm_client = get_client(self._llm_config)
+
+        self.episode_logger = EpisodeLogger()
         
         # Event queue for processing
         self.event_queue = asyncio.Queue()
@@ -50,7 +66,7 @@ class PersonaManager:
         
         # WebSocket connections for real-time updates
         self.websocket_connections = set()
-        
+
     def create_agent(self, name: str, folder_mem_saved: Optional[str] = None) -> Any:
         """
         Create a new agent (predictive or original)
@@ -78,6 +94,10 @@ class PersonaManager:
         }
         
         return agent
+
+    def start_new_session(self, session_id: str) -> None:
+        """Rotate logging to a new session identifier."""
+        self.episode_logger.start_session(session_id)
     
     def get_agent(self, name: str) -> Optional[Any]:
         """Get agent by name"""
@@ -105,6 +125,9 @@ class PersonaManager:
         
         # Send monitoring updates
         await self._send_monitoring_updates()
+
+        # Persist any buffered episode data
+        self.episode_logger.flush()
     
     async def _update_predictive_agent(self, agent: PredictivePersona):
         """Update a single predictive agent"""
@@ -115,7 +138,15 @@ class PersonaManager:
             # Process any actions
             if action:
                 await self._process_agent_action(agent, action)
-            
+                if isinstance(agent, PredictivePersona):
+                    metadata = agent.last_decision or {}
+                    self.episode_logger.log_action(
+                        agent_name=agent.name,
+                        action=action,
+                        needs=agent.needs.needs.copy(),
+                        metadata=metadata,
+                    )
+
             # Check for externalization
             external_thought = await self._check_externalization(agent)
             if external_thought:
@@ -198,23 +229,22 @@ class PersonaManager:
         return None
     
     async def _call_llm(self, prompt: str) -> str:
-        """Call OpenAI API with prompt"""
+        """Call the configured reasoning model with a prompt."""
         try:
-            response = await asyncio.to_thread(
-                openai.ChatCompletion.create,
-                model="gpt-4",
-                messages=[
+            response_text = await asyncio.to_thread(
+                self._llm_client.generate,
+                [
                     {"role": "system", "content": "You are a realistic human-like agent."},
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": prompt},
                 ],
+                max_new_tokens=150,
                 temperature=0.8,
-                max_tokens=150
             )
-            
-            return response.choices[0].message.content.strip()
-            
+
+            return response_text.strip()
+
         except Exception as e:
-            print(f"OpenAI API error: {e}")
+            print(f"LLM error: {e}")
             return "..."
     
     async def _process_external_speech(self, agent: PredictivePersona, speech: str):
@@ -235,6 +265,17 @@ class PersonaManager:
         
         # Add to event queue for environment processing
         await self.event_queue.put(event)
+
+        thoughts = agent.monologue.get_recent_thoughts(5)
+        nearby_names = [other.name for other in agent.nearby_agents if isinstance(other, PredictivePersona)]
+        self.episode_logger.log_speech(
+            agent_name=agent.name,
+            content=speech,
+            needs=agent.needs.needs.copy(),
+            location=agent.current_location,
+            monologue=thoughts,
+            nearby_agents=nearby_names,
+        )
     
     def _find_nearby_agents(self, agent: PredictivePersona) -> List[PredictivePersona]:
         """Find agents near the given agent"""

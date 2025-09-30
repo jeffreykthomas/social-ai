@@ -2,28 +2,47 @@
 Author: Joon Sung Park (joonspk@stanford.edu)
 
 File: gpt_structure.py
-Description: Wrapper functions for calling OpenAI APIs.
+Description: Wrapper functions for calling the local reasoning model.
 """
 import json
 import random
-import openai
 import time 
 
-from utils import *
+import sys
 
-openai.api_key = openai_api_key
+sys.path.append('../../')
+
+from config.config_loader import get_config
+from llm_client import LLMConfig, get_client
+
+_config = get_config()
+_llm_params = _config.get_llm_params()
+if not _llm_params.get('model_name'):
+  raise ValueError("llm.model_name must be configured in need_config.yaml")
+
+_llm_config = LLMConfig(
+  model_name=_llm_params['model_name'],
+  device=_llm_params.get('device'),
+  dtype=_llm_params.get('dtype', 'bfloat16'),
+  max_new_tokens=_llm_params.get('max_new_tokens', 256),
+  temperature=_llm_params.get('temperature', 0.7),
+  top_p=_llm_params.get('top_p', 0.9),
+  repetition_penalty=_llm_params.get('repetition_penalty', 1.05),
+)
+
+
+def _get_client():
+  return get_client(_llm_config)
 
 def temp_sleep(seconds=0.1):
   time.sleep(seconds)
 
 def ChatGPT_single_request(prompt): 
   temp_sleep()
-
-  completion = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo", 
-    messages=[{"role": "user", "content": prompt}]
-  )
-  return completion["choices"][0]["message"]["content"]
+  return _get_client().generate([
+    {"role": "system", "content": "You are a helpful assistant."},
+    {"role": "user", "content": prompt},
+  ])
 
 
 # ============================================================================
@@ -44,15 +63,13 @@ def GPT4_request(prompt):
   """
   temp_sleep()
 
-  try: 
-    completion = openai.ChatCompletion.create(
-    model="gpt-4", 
-    messages=[{"role": "user", "content": prompt}]
-    )
-    return completion["choices"][0]["message"]["content"]
-  
-  except: 
-    print ("ChatGPT ERROR")
+  try:
+    return _get_client().generate([
+      {"role": "system", "content": "You are a thoughtful assistant."},
+      {"role": "user", "content": prompt},
+    ])
+  except Exception as exc:
+    print ("ChatGPT ERROR", exc)
     return "ChatGPT ERROR"
 
 
@@ -69,15 +86,13 @@ def ChatGPT_request(prompt):
     a str of GPT-3's response. 
   """
   # temp_sleep()
-  try: 
-    completion = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo", 
-    messages=[{"role": "user", "content": prompt}]
-    )
-    return completion["choices"][0]["message"]["content"]
-  
-  except: 
-    print ("ChatGPT ERROR")
+  try:
+    return _get_client().generate([
+      {"role": "system", "content": "You are a helpful assistant."},
+      {"role": "user", "content": prompt},
+    ])
+  except Exception as exc:
+    print ("ChatGPT ERROR", exc)
     return "ChatGPT ERROR"
 
 
@@ -309,7 +324,6 @@ if __name__ == '__main__':
                                  True)
 
   print (output)
-
 
 
 

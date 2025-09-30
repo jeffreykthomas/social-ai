@@ -159,10 +159,16 @@ class NeedConfig:
     def get_performance_params(self) -> Dict[str, Any]:
         """Get performance optimization parameters"""
         return self.config.get('performance', {})
-    
+
     def is_parallel_enabled(self) -> bool:
         """Check if parallel predictions are enabled"""
         return self.config['performance']['enable_parallel_predictions']
+
+    # LLM configuration
+
+    def get_llm_params(self) -> Dict[str, Any]:
+        """Return configuration for the local LLM provider"""
+        return self.config.get('llm', {})
     
     # Utility methods
     

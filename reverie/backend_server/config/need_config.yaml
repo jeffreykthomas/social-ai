@@ -222,3 +222,13 @@ performance:
   # Resource limits
   max_memory_per_agent: 100  # MB
   max_computation_time: 0.1  # seconds per think cycle
+
+# Local language model configuration
+llm:
+  model_name: "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B"
+  device: null          # e.g. "cuda", "cuda:0", "cpu", or null for auto
+  dtype: "bfloat16"
+  max_new_tokens: 256
+  temperature: 0.7
+  top_p: 0.9
+  repetition_penalty: 1.05

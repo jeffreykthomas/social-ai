@@ -314,6 +314,9 @@ class PredictivePersona:
         self.current_location = None
         self.nearby_agents = []
         self.recent_events = deque(maxlen=50)
+
+        # Decision logging for downstream analytics
+        self.last_decision: Optional[Dict[str, Any]] = None
         
         # Initialize thinking
         self.monologue.add_thought('need_awareness', 
@@ -376,8 +379,24 @@ class PredictivePersona:
         
         # Decide whether to act
         current_score = self._calculate_need_fulfillment_score(self.needs.needs)
+        if best_outcome_score == -float('inf'):
+            best_outcome_score = current_score
+
         improvement = best_outcome_score - current_score
-        
+
+        self.last_decision = {
+            'timestamp': datetime.datetime.now().isoformat(),
+            'deficient_needs': deficient_needs,
+            'current_score': float(current_score),
+            'projected_score': float(best_outcome_score),
+            'expected_improvement': float(improvement),
+            'candidate_action': best_action,
+            'predicted_events': [
+                {'event': event, 'probability': float(prob)}
+                for event, prob in sorted(event_predictions.items(), key=lambda x: x[1], reverse=True)[:5]
+            ]
+        }
+
         if improvement > 0.1 and best_action:  # Significant improvement threshold
             self.monologue.add_thought('decision',
                                      action=best_action['type'],
