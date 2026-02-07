@@ -414,17 +414,19 @@ def run_gpt_prompt_task_decomp(persona,
     return cr
 
   def __func_validate(gpt_response, prompt=""): 
-    # TODO -- this sometimes generates error 
-    try: 
-      __func_clean_up(gpt_response)
-    except: 
-      pass
-      # return False
-    return gpt_response
+    # Accept only if we can parse it into a non-empty list of [task, duration].
+    try:
+      cr = __func_clean_up(gpt_response, prompt=prompt)
+      return isinstance(cr, list) and len(cr) > 0 and isinstance(cr[0], list) and len(cr[0]) == 2
+    except Exception:
+      return False
 
   def get_fail_safe(): 
-    fs = ["asleep"]
-    return fs
+    # Minimal safe decomposition: keep the original task as a single block.
+    try:
+      return [[str(task), int(duration)]]
+    except Exception:
+      return [[str(task), 5]]
 
   gpt_param = {"engine": "text-davinci-003", "max_tokens": 1000, 
              "temperature": 0, "top_p": 1, "stream": False,

@@ -7,6 +7,8 @@ Description: Wrapper functions for calling the local reasoning model.
 import json
 import random
 import time 
+import hashlib
+import os
 
 import sys
 
@@ -33,6 +35,14 @@ _llm_config = LLMConfig(
 
 def _get_client():
   return get_client(_llm_config)
+
+
+# Optional OpenAI client for legacy GPT_request and embeddings
+try:
+  from openai import OpenAI  # type: ignore
+  _client = OpenAI()  # uses OPENAI_API_KEY env var
+except Exception:  # pragma: no cover
+  _client = None
 
 def temp_sleep(seconds=0.1):
   time.sleep(seconds)
@@ -132,7 +142,7 @@ def GPT4_safe_generate_response(prompt,
     except: 
       pass
 
-  return False
+  return fail_safe_response
 
 
 def ChatGPT_safe_generate_response(prompt, 
@@ -176,7 +186,7 @@ def ChatGPT_safe_generate_response(prompt,
     except: 
       pass
 
-  return False
+  return fail_safe_response
 
 
 def ChatGPT_safe_generate_response_OLD(prompt, 
@@ -222,21 +232,60 @@ def GPT_request(prompt, gpt_parameter):
     a str of GPT-3's response. 
   """
   temp_sleep()
-  try: 
-    response = openai.Completion.create(
-                model=gpt_parameter["engine"],
-                prompt=prompt,
-                temperature=gpt_parameter["temperature"],
-                max_tokens=gpt_parameter["max_tokens"],
-                top_p=gpt_parameter["top_p"],
-                frequency_penalty=gpt_parameter["frequency_penalty"],
-                presence_penalty=gpt_parameter["presence_penalty"],
-                stream=gpt_parameter["stream"],
-                stop=gpt_parameter["stop"],)
-    return response.choices[0].text
-  except: 
-    print ("TOKEN LIMIT EXCEEDED")
-    return "TOKEN LIMIT EXCEEDED"
+
+  # Legacy compatibility layer:
+  # The original Reverie code used the pre-v1 OpenAI SDK Completion API with engines like
+  # "text-davinci-003". This repo now uses OpenAI SDK v1+ (`OpenAI()`), so we route those
+  # legacy "completion" calls through chat completions.
+  #
+  # You can override the model used for these calls with:
+  #   LEGACY_COMPLETION_MODEL=gpt-4o-mini   (default)
+  #   LEGACY_COMPLETION_MODEL=gpt-4o
+  #
+  # If OpenAI isn't configured, we return a short error string and let callers fall back.
+
+  if _client is None:
+    return "LLM_UNAVAILABLE"
+
+  engine = str(gpt_parameter.get("engine", "") or "")
+  legacy_default = os.environ.get("LEGACY_COMPLETION_MODEL", "gpt-4o-mini")
+
+  # Map common legacy engines to modern chat models
+  legacy_map = {
+    "text-davinci-003": legacy_default,
+    "text-davinci-002": legacy_default,
+    "davinci": legacy_default,
+    "gpt-3.5-turbo": legacy_default,
+  }
+  model = legacy_map.get(engine, engine or legacy_default)
+
+  # Map legacy param names to chat-completions equivalents (best-effort)
+  try:
+    temperature = float(gpt_parameter.get("temperature", 0.7))
+  except Exception:
+    temperature = 0.7
+  try:
+    max_tokens = int(gpt_parameter.get("max_tokens", 256))
+  except Exception:
+    max_tokens = 256
+
+  stop = gpt_parameter.get("stop", None)
+  if stop is not None and not isinstance(stop, (list, str)):
+    stop = None
+
+  try:
+    resp = _client.chat.completions.create(
+      model=model,
+      messages=[{"role": "user", "content": prompt}],
+      temperature=temperature,
+      max_tokens=max_tokens,
+      stop=stop,
+    )
+    # openai>=1: resp.choices[0].message.content
+    return (resp.choices[0].message.content or "").strip()
+  except Exception:
+    # Do not emit "TOKEN LIMIT EXCEEDED" sentinel strings; they break downstream parsers.
+    return "LLM_ERROR"
 
 
 def generate_prompt(curr_input, prompt_lib_file): 
@@ -279,8 +328,16 @@ def safe_generate_response(prompt,
 
   for i in range(repeat): 
     curr_gpt_response = GPT_request(prompt, gpt_parameter)
-    if func_validate(curr_gpt_response, prompt=prompt): 
-      return func_clean_up(curr_gpt_response, prompt=prompt)
+    try:
+      ok = func_validate(curr_gpt_response, prompt=prompt)
+    except Exception:
+      ok = False
+    if ok:
+      try:
+        return func_clean_up(curr_gpt_response, prompt=prompt)
+      except Exception:
+        # Treat clean-up failures as invalid and retry (or fall back).
+        ok = False
     if verbose: 
       print ("---- repeat count: ", i, curr_gpt_response)
       print (curr_gpt_response)
@@ -292,8 +349,51 @@ def get_embedding(text, model="text-embedding-ada-002"):
   text = text.replace("\n", " ")
   if not text: 
     text = "this is blank"
-  return openai.Embedding.create(
-          input=[text], model=model)['data'][0]['embedding']
+  # Backward/forward compatible embedding call:
+  # - Old SDK: openai.Embedding.create(...)
+  # - New SDK: OpenAI().embeddings.create(...)
+  # This codebase uses the new SDK for chat (`_client.responses.create`) but the
+  # original embedding call was left behind.
+  #
+  # We also provide a deterministic fallback embedding so classic simulations
+  # can still run in environments without OpenAI configured (retrieval quality
+  # will be reduced but the sim won't crash).
+  #
+  # Map deprecated model names to modern equivalents.
+  # Allow global override via env.
+  embed_model = os.environ.get("OPENAI_EMBEDDING_MODEL", "").strip() or model
+  if embed_model == "text-embedding-ada-002":
+    embed_model = "text-embedding-3-small"
+
+  # Preferred: new client (OpenAI SDK v1+)
+  if _client is not None:
+    try:
+      resp = _client.embeddings.create(model=embed_model, input=[text])
+      # openai>=1: resp.data[0].embedding
+      emb = resp.data[0].embedding  # type: ignore[attr-defined]
+      if isinstance(emb, list) and emb:
+        return emb
+    except Exception:
+      pass
+
+  # Secondary: attempt old SDK if installed (best-effort)
+  try:
+    import openai as _openai  # type: ignore
+    try:
+      _openai.api_key = openai_api_key
+    except Exception:
+      pass
+    resp = _openai.Embedding.create(input=[text], model=model)
+    return resp["data"][0]["embedding"]
+  except Exception:
+    pass
+
+  # Fallback: deterministic pseudo-embedding (1536 dims; ada-002 compatible)
+  # Note: this is not semantically meaningful, but keeps the pipeline alive.
+  dims = 1536
+  seed = int(hashlib.sha256(text.encode("utf-8")).hexdigest()[:16], 16)
+  rng = random.Random(seed)
+  return [rng.uniform(-1.0, 1.0) for _ in range(dims)]
 
 
 if __name__ == '__main__':

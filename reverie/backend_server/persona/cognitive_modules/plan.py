@@ -376,11 +376,29 @@ def generate_new_decomp_schedule(persona, inserted_act, inserted_act_dur,  start
   persona_name = persona.name 
   main_act_dur = main_act_dur
 
-  x = truncated_act_dur[-1][0].split("(")[0].strip() + " (on the way to " + truncated_act_dur[-1][0].split("(")[-1][:-1] + ")"
-  truncated_act_dur[-1][0] = x 
+  # Robustness: truncated_act_dur can be empty if we fail to find a matching
+  # window or if schedules are malformed. In that case, fall back to a minimal
+  # context so we can still insert the reaction without crashing.
+  if truncated_act_dur:
+    try:
+      x = (
+        truncated_act_dur[-1][0].split("(")[0].strip()
+        + " (on the way to "
+        + truncated_act_dur[-1][0].split("(")[-1][:-1]
+        + ")"
+      )
+      truncated_act_dur[-1][0] = x
+    except Exception:
+      pass
 
-  if "(" in truncated_act_dur[-1][0]: 
-    inserted_act = truncated_act_dur[-1][0].split("(")[0].strip() + " (" + inserted_act + ")"
+    try:
+      if "(" in truncated_act_dur[-1][0]:
+        inserted_act = truncated_act_dur[-1][0].split("(")[0].strip() + " (" + inserted_act + ")"
+    except Exception:
+      pass
+  else:
+    # No prior context; just insert the act as-is. (We still pass main_act_dur.)
+    truncated_act_dur = []
 
   # To do inserted_act_dur+1 below is an important decision but I'm not sure
   # if I understand the full extent of its implications. Might want to 

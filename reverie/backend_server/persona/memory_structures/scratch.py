@@ -12,7 +12,7 @@ sys.path.append('../../')
 from global_methods import *
 
 class Scratch: 
-  def __init__(self, f_saved): 
+  def __init__(self, f_saved=None): 
     # PERSONA HYPERPARAMETERS
     # <vision_r> denotes the number of tiles that the persona can see around 
     # them. 
@@ -158,7 +158,18 @@ class Scratch:
     # e.g., [(50, 10), (49, 10), (48, 10), ...]
     self.planned_path = []
 
-    if check_if_file_exists(f_saved): 
+    # HYBRID / PREDICTIVE OVERLAY (optional; backward compatible with older scratch.json)
+    # Stored here so the classic Persona can be augmented with:
+    # - need-state tracking
+    # - internal monologue stream
+    # - lightweight predictions
+    self.need_states = {}
+    self.internal_monologue = []  # list[{timestamp,type,content,metadata?}]
+    self.prediction_buffer = []   # list[{event,probability,impacts?}]
+    self.last_schedule_adjust_time = None  # str "%B %d, %Y, %H:%M:%S" or None
+    self.recent_event_descriptions = []    # list[str]
+
+    if f_saved and check_if_file_exists(f_saved): 
       # If we have a bootstrap file, load that here. 
       scratch_load = json.load(open(f_saved))
 
@@ -233,6 +244,28 @@ class Scratch:
       self.act_path_set = scratch_load["act_path_set"]
       self.planned_path = scratch_load["planned_path"]
 
+      # Hybrid overlay fields (optional in older saves)
+      try:
+        self.need_states = scratch_load.get("need_states", {}) or {}
+      except Exception:
+        self.need_states = {}
+      try:
+        self.internal_monologue = scratch_load.get("internal_monologue", []) or []
+      except Exception:
+        self.internal_monologue = []
+      try:
+        self.prediction_buffer = scratch_load.get("prediction_buffer", []) or []
+      except Exception:
+        self.prediction_buffer = []
+      try:
+        self.recent_event_descriptions = scratch_load.get("recent_event_descriptions", []) or []
+      except Exception:
+        self.recent_event_descriptions = []
+      try:
+        self.last_schedule_adjust_time = scratch_load.get("last_schedule_adjust_time", None)
+      except Exception:
+        self.last_schedule_adjust_time = None
+
 
   def save(self, out_json):
     """
@@ -305,6 +338,13 @@ class Scratch:
 
     scratch["act_path_set"] = self.act_path_set
     scratch["planned_path"] = self.planned_path
+
+    # Hybrid overlay fields
+    scratch["need_states"] = self.need_states
+    scratch["internal_monologue"] = self.internal_monologue
+    scratch["prediction_buffer"] = self.prediction_buffer
+    scratch["recent_event_descriptions"] = self.recent_event_descriptions
+    scratch["last_schedule_adjust_time"] = self.last_schedule_adjust_time
 
     with open(out_json, "w") as outfile:
       json.dump(scratch, outfile, indent=2) 

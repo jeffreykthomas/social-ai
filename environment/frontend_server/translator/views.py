@@ -106,18 +106,66 @@ def home(request):
   f_curr_sim_code = "temp_storage/curr_sim_code.json"
   f_curr_step = "temp_storage/curr_step.json"
 
-  if not check_if_file_exists(f_curr_step): 
-    context = {}
-    template = "home/error_start_backend.html"
-    return render(request, template, context)
+  # Historically, the backend writes curr_step.json once and the frontend deletes it
+  # on first load. That makes refreshes look like "backend not started" even when
+  # the sim is running. Be robust: if curr_step is missing, infer it from storage.
+  inferred_step = None
+  if not check_if_file_exists(f_curr_step):
+    try:
+      if check_if_file_exists(f_curr_sim_code):
+        with open(f_curr_sim_code) as json_file:
+          sim_code = json.load(json_file)["sim_code"]
+        # Infer step from movement files first (that's what the UI consumes).
+        # Fallback to environment snapshot if movement hasn't been produced yet.
+        def _max_step_in(dir_path: str) -> int | None:
+          try:
+            file_count = []
+            for i in find_filenames(dir_path, ".json"):
+              x = i.split("/")[-1].strip()
+              if x and x[0] != ".":
+                try:
+                  file_count += [int(x.split(".")[0])]
+                except Exception:
+                  pass
+            return max(file_count) if file_count else None
+          except Exception:
+            return None
+
+        move_dir = f"storage/{sim_code}/movement"
+        env_dir = f"storage/{sim_code}/environment"
+
+        max_move = _max_step_in(move_dir)
+        max_env = _max_step_in(env_dir)
+
+        # Choose the latest step that is guaranteed to exist in movement.
+        # If movement doesn't exist yet, fall back to env (or 0).
+        if max_move is not None:
+          inferred_step = max_move
+        elif max_env is not None:
+          inferred_step = max_env
+        else:
+          inferred_step = 0
+    except Exception:
+      inferred_step = None
+    # If we still can't infer, fall back to the old error page.
+    if inferred_step is None:
+      context = {}
+      template = "home/error_start_backend.html"
+      return render(request, template, context)
 
   with open(f_curr_sim_code) as json_file:  
     sim_code = json.load(json_file)["sim_code"]
   
-  with open(f_curr_step) as json_file:  
-    step = json.load(json_file)["step"]
-
-  os.remove(f_curr_step)
+  if inferred_step is not None:
+    step = inferred_step
+  else:
+    with open(f_curr_step) as json_file:
+      step = json.load(json_file)["step"]
+    # Keep behavior for first-time load, but don't crash if removal fails.
+    try:
+      os.remove(f_curr_step)
+    except Exception:
+      pass
 
   persona_names = []
   persona_names_set = set()

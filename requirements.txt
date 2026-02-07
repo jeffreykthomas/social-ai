@@ -1,3 +1,4 @@
+--index-url https://pypi.org/simple
 aiohttp==3.8.3
 aiosignal==1.3.1
 asgiref==3.5.2
@@ -8,7 +9,7 @@ boto==2.49.0
 botocore==1.29.43
 certifi==2021.10.8
 charset-normalizer==2.0.12
-click==8.0.3
+click>=8.1.7,<8.3
 cycler==0.11.0
 dj-database-url==0.5.0
 Django==2.2
@@ -27,21 +28,24 @@ kiwisolver==1.4.4
 matplotlib==3.7.2
 multidict==6.0.4
 nltk==3.6.5
-numpy~=1.26.2
-openai==0.27.0
+numpy>=1.26.0,<2
+# OpenAI Python SDK (Responses API). Pin to current major line.
+openai>=2.13.0,<3.0.0
 outcome==1.2.0
-packaging==23.0
+packaging>=24.2,<26
 pandas~=2.1.4
 patsy==0.5.3
-Pillow==8.4.0
+Pillow>=10.3.0,<11
 psycopg2-binary==2.9.5
 pycparser==2.21
 pyparsing==3.0.6
 PySocks==1.7.1
 python-dateutil==2.8.2
 pytz==2021.3
-regex==2021.11.10
-requests==2.26.0
+regex>=2022.1.18,<2026
+requests>=2.31.0,<3
+PyYAML==6.0.1
+python-dotenv==1.0.1
 s3transfer==0.6.0
 scikit-learn==1.3.0
 scikit-posthocs==0.7.0
@@ -60,12 +64,17 @@ tqdm==4.62.3
 trio==0.22.0
 trio-websocket==0.9.2
 trueskill==0.4.5
-typing-extensions==4.0.0
-urllib3==1.26.7
+# openai>=2.13.0 requires typing-extensions>=4.11,<5
+typing-extensions>=4.11.0,<5
+urllib3>=1.26.11,<3
 wsproto==1.2.0
 yarl==1.8.2
 yellowbrick==1.5
 zipp==3.6.0
 
-torch~=2.1.2+cu118
-transformers~=4.36.2
+# PyTorch CUDA wheels (driver shows CUDA 12.4).
+# Keep PyPI as the main index; add PyTorch as an extra index so non-torch deps still resolve.
+--extra-index-url https://download.pytorch.org/whl/cu124
+torch==2.9.0
+transformers>=4.56.0,<5
+tokenizers>=0.21.1,<1

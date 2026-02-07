@@ -28,12 +28,23 @@ import os
 import shutil
 import traceback
 
-from selenium import webdriver
+from env import load_env
+load_env()
+
+try:
+  # Optional: only needed for some interactive/demo workflows.
+  from selenium import webdriver  # type: ignore
+except Exception:
+  webdriver = None
 
 from global_methods import *
 from utils import *
 from maze import *
-from persona.persona import *
+from persona.persona import Persona
+try:
+  from persona.hybrid_persona import HybridPersona
+except Exception:
+  HybridPersona = None
 
 ##############################################################################
 #                                  REVERIE                                   #
@@ -121,11 +132,15 @@ class ReverieServer:
     # Loading in all personas. 
     init_env_file = f"{sim_folder}/environment/{str(self.step)}.json"
     init_env = json.load(open(init_env_file))
+    agent_mode = os.environ.get("REVERIE_AGENT_MODE", "classic").strip().lower()
     for persona_name in reverie_meta['persona_names']: 
       persona_folder = f"{sim_folder}/personas/{persona_name}"
       p_x = init_env[persona_name]["x"]
       p_y = init_env[persona_name]["y"]
-      curr_persona = Persona(persona_name, persona_folder)
+      if agent_mode == "hybrid" and HybridPersona is not None:
+        curr_persona = HybridPersona(persona_name, persona_folder)
+      else:
+        curr_persona = Persona(persona_name, persona_folder)
 
       self.personas[persona_name] = curr_persona
       self.personas_tile[persona_name] = (p_x, p_y)
@@ -398,6 +413,14 @@ class ReverieServer:
           #  "persona": {"Klaus Mueller": {"movement": [38, 12]}}, 
           #  "meta": {curr_time: <datetime>}}
           curr_move_file = f"{sim_folder}/movement/{self.step}.json"
+          # Ensure movement output directory exists (some forks may not include it yet)
+          try:
+            create_folder_if_not_there(curr_move_file)
+          except Exception:
+            try:
+              os.makedirs(f"{sim_folder}/movement", exist_ok=True)
+            except Exception:
+              pass
           with open(curr_move_file, "w") as outfile: 
             outfile.write(json.dumps(movements, indent=2))
 

@@ -28,6 +28,22 @@ sys.path.append(backend_path)
 from persona.persona_manager import get_manager
 
 
+def _read_shared_monitor_state() -> dict:
+    """
+    Read the latest monitoring snapshot written by the simulation process.
+    Falls back gracefully if file isn't present yet.
+    """
+    try:
+        # Default path written by PersonaManager
+        state_path = os.path.join(backend_path, "distill_logs", "monitor_state.json")
+        if not os.path.exists(state_path):
+            return {}
+        with open(state_path, "r", encoding="utf-8") as f:
+            return json.load(f) or {}
+    except Exception:
+        return {}
+
+
 def agent_monitor_view(request):
     """
     Render the agent monitor interface
@@ -43,11 +59,15 @@ def get_agent_states(request):
     if request.method == 'GET':
         try:
             manager = get_manager()
-            
-            # Collect agent data
+
+            # Collect agent data from in-process manager; if empty, fall back to shared file.
             agent_data = {}
-            for name in manager.monitoring_data:
-                agent_data[name] = manager.monitoring_data[name]
+            if getattr(manager, "monitoring_data", None):
+                for name in manager.monitoring_data:
+                    agent_data[name] = manager.monitoring_data[name]
+            else:
+                shared = _read_shared_monitor_state()
+                agent_data = shared.get("agents", {}) if isinstance(shared, dict) else {}
             
             return JsonResponse({
                 'status': 'success',
@@ -73,6 +93,12 @@ def get_agent_details(request, agent_name):
         try:
             manager = get_manager()
             summary = manager.get_agent_summary(agent_name)
+
+            if not summary:
+                shared = _read_shared_monitor_state()
+                agents = (shared.get("agents") or {}) if isinstance(shared, dict) else {}
+                if agent_name in agents:
+                    summary = {"name": agent_name, **agents.get(agent_name, {})}
             
             if summary:
                 return JsonResponse({

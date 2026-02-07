@@ -24,19 +24,41 @@ from global_methods import *
 from persona.memory_structures.spatial_memory import *
 from persona.memory_structures.associative_memory import *
 from persona.memory_structures.scratch import *
-from persona.cognitive_modules.perceive import *
-from persona.cognitive_modules.retrieve import *
 from config.config_loader import get_config
 
 
 class NeedState:
     """Manages an agent's internal need states"""
     
-    def __init__(self):
+    def __init__(self, profile: Optional[Dict[str, Any]] = None):
+        """
+        profile: optional dict that may contain:
+          - needs_initial_overrides: {need: float}
+          - needs_decay_multipliers: {need: float}
+        """
         # Load from YAML config
         config = get_config()
         self.needs = config.get_initial_needs()
         self.decay_rates = config.get_decay_rates()
+
+        prof = profile or {}
+        init_over = prof.get("needs_initial_overrides") or {}
+        if isinstance(init_over, dict):
+            for k, v in init_over.items():
+                if k in self.needs:
+                    try:
+                        self.needs[k] = float(np.clip(float(v), 0, 1))
+                    except Exception:
+                        pass
+
+        decay_mult = prof.get("needs_decay_multipliers") or {}
+        if isinstance(decay_mult, dict):
+            for k, m in decay_mult.items():
+                if k in self.decay_rates:
+                    try:
+                        self.decay_rates[k] = float(self.decay_rates[k]) * float(m)
+                    except Exception:
+                        pass
         
         # History for tracking changes
         self.history = []
@@ -217,7 +239,13 @@ class InternalMonologue:
         if thought_type in self.thought_patterns:
             patterns = self.thought_patterns[thought_type]
             pattern = random.choice(patterns)
-            thought = pattern.format(**kwargs)
+            # Be robust to missing template keys (e.g., some templates reference {action}/{response})
+            # so the simulation doesn't crash due to a single missing field.
+            class _SafeDict(dict):
+                def __missing__(self, key):
+                    return f"<{key}>"
+
+            thought = pattern.format_map(_SafeDict(kwargs))
         else:
             thought = kwargs.get('content', '*thinking*')
         
@@ -274,13 +302,16 @@ class PredictivePersona:
     Predictive agent with need-based architecture and continuous internal monologue
     """
     
-    def __init__(self, name: str, folder_mem_saved: Optional[str] = None):
+    def __init__(self, name: str, folder_mem_saved: Optional[str] = None, profile: Optional[Dict[str, Any]] = None):
         # Basic identity
         self.name = name
         self.agent_id = f"agent_{name.lower().replace(' ', '_')}"
+
+        # Persona profile (Enneagram, etc.)
+        self.profile = profile or {}
         
         # Need management
-        self.needs = NeedState()
+        self.needs = NeedState(profile=self.profile)
         
         # Prediction systems
         self.prediction_model = PredictionModel()
@@ -298,10 +329,17 @@ class PredictivePersona:
             self.a_mem = AssociativeMemory(f_a_mem_saved)
             scratch_saved = f"{folder_mem_saved}/bootstrap_memory/scratch.json"
             self.scratch = Scratch(scratch_saved)
+            # Optional: load extra fields not captured by Scratch (e.g., commitments)
+            try:
+                raw = json.load(open(scratch_saved))
+                self.commitments = raw.get("commitments", []) if isinstance(raw, dict) else []
+            except Exception:
+                self.commitments = []
         else:
             self.s_mem = MemoryTree()
             self.a_mem = AssociativeMemory()
             self.scratch = Scratch()
+            self.commitments = []
         
         # Social modeling
         self.other_agent_models = {}  # agent_id -> PredictionModel
@@ -317,6 +355,17 @@ class PredictivePersona:
 
         # Decision logging for downstream analytics
         self.last_decision: Optional[Dict[str, Any]] = None
+
+        # Recent external speech uttered by this agent (for UI/monitoring)
+        self.recent_speech = deque(maxlen=50)
+
+        # Daily scheduling (filled by PersonaManager via tool-calls)
+        # A schedule is a list of items: {"activity","location","duration_minutes","start_minute","end_minute",...}
+        self.daily_schedule: List[Dict[str, Any]] = []
+        self.schedule_for_date: Optional[datetime.date] = None
+        self.schedule_day_start_hour: int = 8
+        self.schedule_day_end_hour: int = 20
+        self._schedule_index: int = 0
         
         # Initialize thinking
         self.monologue.add_thought('need_awareness', 
@@ -517,23 +566,22 @@ class PredictivePersona:
     
     def _calculate_need_fulfillment_score(self, need_state: Dict[str, float]) -> float:
         """Calculate overall fulfillment score with priority weighting"""
-        # Weight critical needs more heavily
-        weights = {
-            'safety': 2.0,
-            'connection': 1.5,
-            'approval': 1.2,
-            'empathy': 1.0,
-            'fun': 0.8,
-            'attention': 1.0,
-            'achievement': 1.1,
-            'autonomy': 1.3,
-            'purpose': 1.4
-        }
-        
-        weighted_sum = sum(need_state[need] * weights[need] for need in need_state)
-        total_weight = sum(weights.values())
-        
-        return weighted_sum / total_weight
+        base_weights = get_config().get_priority_weights()
+        multipliers = (self.profile or {}).get("needs_priority_multipliers") or {}
+
+        weighted_sum = 0.0
+        total_weight = 0.0
+        for need, value in need_state.items():
+            w = float(base_weights.get(need, 1.0))
+            if isinstance(multipliers, dict) and need in multipliers:
+                try:
+                    w *= float(multipliers[need])
+                except Exception:
+                    pass
+            weighted_sum += float(value) * w
+            total_weight += w
+
+        return (weighted_sum / total_weight) if total_weight > 0 else 0.0
     
     def _determine_action_for_event(self, event: str) -> Optional[Dict[str, Any]]:
         """Determine what action would lead to the predicted event"""
@@ -572,6 +620,13 @@ class PredictivePersona:
                 'purpose': 0.3,
                 'connection': 0.2,
                 'empathy': 0.2
+            },
+            # Social expectation violation
+            'missed_commitment': {
+                'connection': -0.25,
+                'approval': -0.2,
+                'safety': -0.05,
+                'empathy': -0.05
             }
         }
         

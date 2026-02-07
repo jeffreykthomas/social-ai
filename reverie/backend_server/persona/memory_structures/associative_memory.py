@@ -48,7 +48,7 @@ class ConceptNode:
 
 
 class AssociativeMemory: 
-  def __init__(self, f_saved): 
+  def __init__(self, f_saved=None): 
     self.id_to_node = dict()
 
     self.seq_event = []
@@ -61,6 +61,11 @@ class AssociativeMemory:
 
     self.kw_strength_event = dict()
     self.kw_strength_thought = dict()
+
+    # If no saved path is provided, initialize empty structures.
+    if not f_saved:
+      self.embeddings = {}
+      return
 
     self.embeddings = json.load(open(f_saved + "/embeddings.json"))
 
@@ -102,11 +107,20 @@ class AssociativeMemory:
         self.add_thought(created, expiration, s, p, o, 
                    description, keywords, poignancy, embedding_pair, filling)
 
-    kw_strength_load = json.load(open(f_saved + "/kw_strength.json"))
-    if kw_strength_load["kw_strength_event"]: 
-      self.kw_strength_event = kw_strength_load["kw_strength_event"]
-    if kw_strength_load["kw_strength_thought"]: 
-      self.kw_strength_thought = kw_strength_load["kw_strength_thought"]
+    # Backward compatible kw-strength loading:
+    # Some stored sims have an empty `{}` kw_strength.json (missing keys),
+    # while newer ones store {"kw_strength_event": {...}, "kw_strength_thought": {...}}.
+    try:
+      kw_strength_load = json.load(open(f_saved + "/kw_strength.json"))
+    except Exception:
+      kw_strength_load = {}
+    if isinstance(kw_strength_load, dict):
+      kw_e = kw_strength_load.get("kw_strength_event") or {}
+      kw_t = kw_strength_load.get("kw_strength_thought") or {}
+      if isinstance(kw_e, dict):
+        self.kw_strength_event = kw_e
+      if isinstance(kw_t, dict):
+        self.kw_strength_thought = kw_t
 
     
   def save(self, out_json): 

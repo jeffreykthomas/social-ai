@@ -165,6 +165,10 @@ from persona_manager import get_manager
 manager = get_manager(use_predictive=True)
 agent = manager.create_agent("Isabella Rodriguez")
 
+# Example: create an Enneagram-inspired persona profile (motive + expressive style + need priorities)
+# See `reverie/backend_server/persona/profiles/enneagram.yaml` for available ids.
+agent_2 = manager.create_agent("Isabella Rodriguez", profile_id="enneagram_2")
+
 # Example: record a social note about another agent
 manager.add_note(observer="Isabella Rodriguez", about="Bill", note="can sell groceries; very giving of emotional support")
 ```

@@ -389,6 +389,28 @@
             });
             
             card.appendChild(socialDiv);
+
+            // Schedule (optional; provided by predictive PersonaManager)
+            if (data.schedule && Array.isArray(data.schedule) && data.schedule.length > 0) {
+                const schedDiv = document.createElement('div');
+                schedDiv.className = 'predictions'; // reuse styling
+
+                const schedTitle = document.createElement('div');
+                schedTitle.className = 'predictions-title';
+                schedTitle.textContent = 'Schedule (waking day)';
+                schedDiv.appendChild(schedTitle);
+
+                data.schedule.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'prediction-item';
+                    const loc = item.location || 'unknown';
+                    const act = item.activity || '';
+                    const dur = item.duration_minutes || '';
+                    row.textContent = `${act} @ ${loc} (${dur}m)`;
+                    schedDiv.appendChild(row);
+                });
+                card.appendChild(schedDiv);
+            }
             
             // Timestamp
             const timestamp = document.createElement('div');

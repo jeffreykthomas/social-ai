@@ -9,32 +9,26 @@
 This repository accompanies our research paper titled "[Generative Agents: Interactive Simulacra of Human Behavior](https://arxiv.org/abs/2304.03442)." It contains our core simulation module for  generative agents—computational agents that simulate believable human behaviors—and their game environment. Below, we document the steps for setting up the simulation environment on your local machine and for replaying the simulation as a demo animation.
 
 ## <img src="https://joonsungpark.s3.amazonaws.com:443/static/assets/characters/profile/Isabella_Rodriguez.png" alt="Generative Isabella">   Setting Up the Environment 
-To set up your environment, you will need to generate a `utils.py` file that contains your OpenAI API key and download the necessary packages.
+To set up your environment, you will need to configure your API keys via environment variables (recommended) and install the necessary packages.
 
-### Step 1. Generate Utils File
-In the `reverie/backend_server` folder (where `reverie.py` is located), create a new file titled `utils.py` and copy and paste the content below into the file:
+We support loading environment variables from a repo-root `.env` file via `python-dotenv`.
+See `env.example` (copy it to `.env`).
+
+### Step 1. Configure API keys (recommended: `.env`)
+This repo will auto-load a local `.env` file from the **repo root** (if present). Create one by copying the provided example file:
+
+```bash
+cp env.example .env
 ```
-# Copy and paste your OpenAI API Key
-openai_api_key = "<Your OpenAI API>"
-# Put your name
-key_owner = "<Name>"
 
-maze_assets_loc = "../../environment/frontend_server/static_dirs/assets"
-env_matrix = f"{maze_assets_loc}/the_ville/matrix"
-env_visuals = f"{maze_assets_loc}/the_ville/visuals"
+Then edit `.env` and set:
+- `OPENAI_API_KEY` (required for LLM-backed features)
+- optionally `HF_TOKEN` (for Hugging Face tooling)
 
-fs_storage = "../../environment/frontend_server/storage"
-fs_temp_storage = "../../environment/frontend_server/temp_storage"
-
-collision_block_id = "32125"
-
-# Verbose 
-debug = True
-```
-Replace `<Your OpenAI API>` with your OpenAI API key, and `<name>` with your name.
+Important: `.env` is gitignored—do **not** commit secrets.
  
 ### Step 2. Install requirements.txt
-Install everything listed in the `requirements.txt` file (I strongly recommend first setting up a virtualenv as usual). A note on Python version: we tested our environment on Python 3.9.12. 
+Install everything listed in `requirements.txt` (I strongly recommend using the repo’s `venv/` as usual).
 
 ## <img src="https://joonsungpark.s3.amazonaws.com:443/static/assets/characters/profile/Klaus_Mueller.png" alt="Generative Klaus">   Running a Simulation 
 To run a new simulation, you will need to concurrently start two servers: the environment server and the agent simulation server.
@@ -109,6 +103,31 @@ To customize the initialization by authoring your own history file, place your f
 ### Create New Base Simulations
 For a more involved customization, you will need to author your own base simulation files. The most straightforward approach would be to copy and paste an existing base simulation folder, renaming and editing it according to your requirements. This process will be simpler if you decide to keep the agent names unchanged. However, if you wish to change their names or increase the number of agents that the Smallville map can accommodate, you might need to directly edit the map using the [Tiled](https://www.mapeditor.org/) map editor.
 
+### Generate a fresh 9-agent Enneagram-style base simulation (new names each run)
+This repo includes an Enneagram-inspired profile set and a generator that creates a new simulation folder containing **9 different agents** each time, while keeping the **same 9 archetypes** as a foundation.
+
+- **Profiles**: `reverie/backend_server/persona/profiles/enneagram.yaml`
+- **Generator**: `reverie/backend_server/tools/generate_enneagram_simulation.py`
+
+Run from the repo root:
+
+```bash
+python reverie/backend_server/tools/generate_enneagram_simulation.py --base base_the_ville_n25 --out enneagram9_run1
+```
+
+This creates a new folder under `environment/frontend_server/storage/<out>/` with:
+- `environment/0.json` (spawn points)
+- `reverie/meta.json` (persona_names)
+- `reverie/persona_profiles.json` (name → enneagram profile id)
+- `reverie/scenarios.json` (scenario seeds; LLM-backed if `OPENAI_API_KEY` is set, otherwise heuristic)
+- `personas/<Name>/bootstrap_memory/*` (scratch + spatial memory + associative memory)
+
+You can control scenario generation size and grouping:
+
+```bash
+python reverie/backend_server/tools/generate_enneagram_simulation.py --base base_the_ville_n25 --out enneagram9_run1 --scenarios 36 --max-group 3
+```
+
 
 ## Predictive Agents Extensions (Time Allocation, Tools, and Social Interaction)
 
@@ -122,6 +141,51 @@ For a more involved customization, you will need to author your own base simulat
 - **Post-interaction evaluation**: After each interaction, agents spend a brief evaluation period to compare predicted vs actual outcomes, update notes, and adjust future time allocations.
 
 For implementation details, configuration, and API additions, see `PREDICTIVE_AGENTS_IMPLEMENTATION.md`.
+
+## Running the Modern Teacher/Student Stack (Recommended)
+
+This repo includes a teacher/student architecture:
+- **Teacher**: OpenAI (via the **Responses API**) for high-quality dialogue, scheduling, and supervision.
+- **Student**: local open-source model served via **vLLM** (OpenAI-compatible `/v1/chat/completions`) for tool-calling / actions.
+
+### One-command local stack
+
+This starts:
+- vLLM (student) on `:8001`
+- Django environment + monitor on `:8000`
+- simulation loop (writes monitor state + distillation logs)
+
+```bash
+source venv/bin/activate
+./scripts/run_stack.sh
+```
+
+Stop everything:
+
+```bash
+./scripts/stop_stack.sh
+```
+
+### Monitor UI
+- `http://localhost:8000/agent_monitor/`
+
+### Distillation logs
+- Teacher: `reverie/backend_server/distill_logs/teacher.jsonl`
+- Student: `reverie/backend_server/distill_logs/student.jsonl`
+- Monitor state bridge: `reverie/backend_server/distill_logs/monitor_state.json`
+
+### Smoke tests
+Teacher (OpenAI Responses API):
+
+```bash
+python reverie/backend_server/scripts/smoke_test_teacher.py
+```
+
+Student (vLLM OpenAI-compatible endpoint):
+
+```bash
+python reverie/backend_server/scripts/smoke_test_student.py
+```
 
 ## <img src="https://joonsungpark.s3.amazonaws.com:443/static/assets/characters/profile/Eddy_Lin.png" alt="Generative Eddy">   Authors and Citation 
 

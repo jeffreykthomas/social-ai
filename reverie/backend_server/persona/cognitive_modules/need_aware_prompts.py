@@ -29,6 +29,14 @@ class NeedAwarePromptEngine:
         return {
             'externalize_thought': """You are {agent_name}, an agent with internal needs and desires.
 
+Persona style:
+{persona_style}
+
+Planning context (important):
+- You maintain a daily schedule and you can revise it when new information arises.
+- You can also form future commitments (one-off or recurring), remember them, and be expected to follow through.
+- Missing a commitment (especially when someone expects you) can create social friction.
+
 Your recent internal monologue:
 {internal_monologue}
 
@@ -56,6 +64,10 @@ Remember: You're not explicitly talking about your needs, but your words should 
 Your response:""",
 
             'social_interaction': """You are {agent_name} interacting with {other_agent}.
+
+Planning context (important):
+- You maintain a daily schedule and you can revise it after interactions if it changes your priorities.
+- You can also form future commitments (meetups, recurring plans) and will be expected to follow through.
 
 Your internal state:
 - Recent thoughts: {recent_thoughts}
@@ -147,7 +159,7 @@ Your insight:"""
         """Load descriptions of what each need represents"""
         try:
             # Lazy import to avoid circular dependency at import time
-            from ...config.config_loader import get_config
+            from config.config_loader import get_config
             need_defs = get_config().get_need_definitions()
             return {k: v.get('description', k) for k, v in need_defs.items()}
         except Exception:
@@ -225,12 +237,13 @@ Your insight:"""
         
         return "\n".join(formatted)
     
-    def generate_externalization_prompt(self, 
+    def generate_externalization_prompt(self,
                                       agent_name: str,
                                       internal_monologue: List[str],
                                       need_states: Dict[str, float],
                                       predictions: List[Dict[str, Any]],
-                                      context: Dict[str, Any]) -> str:
+                                      context: Dict[str, Any],
+                                      persona_style: str = "") -> str:
         """Generate prompt for externalizing internal thoughts"""
         
         priority_needs = sorted(need_states.items(), key=lambda x: x[1])[:3]
@@ -238,6 +251,7 @@ Your insight:"""
         
         return self.prompt_templates['externalize_thought'].format(
             agent_name=agent_name,
+            persona_style=persona_style or "- (no specific style guidance)",
             internal_monologue="\n".join(f"- {thought}" for thought in internal_monologue[-10:]),
             need_states=self.format_need_states(need_states),
             priority_needs=", ".join(priority_need_names),
