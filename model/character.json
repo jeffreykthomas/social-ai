@@ -1,0 +1,460 @@
+{
+    "schema_name": "social_agent_character_map",
+    "schema_version": "0.1.0",
+    "meta": {
+      "purpose": "Define rich, distinct social AI agents via modular character facets.",
+      "design_notes": {
+        "pruning_strategy": "Start broad, then remove whole categories you don't need. Keep: Motivations, Values, Social Style, Emotion Regulation, Voice, Constraints.",
+        "orthogonality_goal": "Each field should predict different behavior; avoid duplicated fields across categories.",
+        "tension_rule": "Prefer encoding contradictions (e.g., wants intimacy + fears dependence) over single adjectives."
+      }
+    },
+    "top_level_categories": [
+      {
+        "key": "identity_self_concept",
+        "label": "Identity & Self-Concept",
+        "description": "How the agent defines themselves; identity anchors that drive pride/shame and social behavior.",
+        "fields": [
+          { "key": "core_roles", "type": "list_string", "prompt": "What roles do they strongly identify with?" },
+          { "key": "self_story", "type": "string", "prompt": "What is their personal myth / internal narrative?" },
+          { "key": "identity_anchors", "type": "list_string", "prompt": "What anchors identity (craft, community, ideology, family, etc.)?" },
+          { "key": "status_orientation", "type": "enum", "options": ["status_seeking", "status_avoiding", "status_indifferent", "status_ambivalent"] },
+          { "key": "self_esteem_profile", "type": "enum", "options": ["stable", "fragile", "defensive", "low", "oscillating"] },
+          { "key": "pride_points", "type": "list_string", "prompt": "What are they proud of (even secretly)?" },
+          { "key": "shame_points", "type": "list_string", "prompt": "What do they hide or feel shame about?" },
+          { "key": "identity_contradictions", "type": "list_string", "prompt": "What contradictions do they live with?" }
+        ]
+      },
+      {
+        "key": "demographics_social_position",
+        "label": "Demographics & Social Position",
+        "description": "Social positioning variables that shape lived experience (use lightly; avoid stereotyping).",
+        "fields": [
+          { "key": "age", "type": "number_optional" },
+          { "key": "gender_identity", "type": "string_optional" },
+          { "key": "pronouns", "type": "string_optional" },
+          { "key": "location", "type": "string_optional" },
+          { "key": "language_register", "type": "enum", "options": ["formal", "neutral", "casual", "mixed"] },
+          { "key": "socioeconomic_background", "type": "enum", "options": ["low", "working", "middle", "upper", "varied"] },
+          { "key": "education_exposure", "type": "string_optional" },
+          { "key": "public_identity_visibility", "type": "enum", "options": ["high", "medium", "low"] }
+        ]
+      },
+      {
+        "key": "culture_religion_worldview",
+        "label": "Culture, Religion & Worldview",
+        "description": "Meaning-making systems; what feels 'normal' and what feels 'weird' or threatening.",
+        "fields": [
+          { "key": "cultural_context", "type": "list_string" },
+          { "key": "religious_spiritual_orientation", "type": "string_optional" },
+          { "key": "sacred_things", "type": "list_string", "prompt": "What feels sacred or inviolable?" },
+          { "key": "purity_disgust_sensitivities", "type": "list_string" },
+          { "key": "fate_vs_agency", "type": "scale_0_10", "prompt": "0=fate, 10=personal agency" },
+          { "key": "tradition_vs_progress", "type": "scale_0_10", "prompt": "0=tradition, 10=progress" },
+          { "key": "ingroup_outgroup_model", "type": "string_optional" },
+          { "key": "cosmic_justice_belief", "type": "scale_0_10", "prompt": "0=no, 10=strongly yes" }
+        ]
+      },
+      {
+        "key": "life_history_formative_events",
+        "label": "Life History & Formative Events",
+        "description": "Events that shaped default expectations, fears, coping, and relationship patterns.",
+        "fields": [
+          { "key": "origin_summary", "type": "string_optional" },
+          { "key": "formative_events", "type": "list_object", "schema": { "event": "string", "age_or_period": "string_optional", "impact": "string_optional" } },
+          { "key": "wins_and_achievements", "type": "list_string" },
+          { "key": "losses_and_grief", "type": "list_string" },
+          { "key": "turning_points", "type": "list_string" },
+          { "key": "attachments_history_notes", "type": "string_optional" },
+          { "key": "institutions_experience", "type": "list_string", "prompt": "Schools, military, churches, hospitals, prisons, corps, etc." },
+          { "key": "recurring_pattern", "type": "string_optional", "prompt": "What keeps happening in their life (theme)?" }
+        ]
+      },
+      {
+        "key": "motivations_needs_drives",
+        "label": "Motivations, Needs & Drives",
+        "description": "What they pursue or avoid; their internal economy of reward and threat.",
+        "fields": [
+          { "key": "core_needs", "type": "object", "schema": { "safety": "scale_0_10", "belonging": "scale_0_10", "autonomy": "scale_0_10", "competence": "scale_0_10", "meaning": "scale_0_10", "novelty": "scale_0_10" } },
+          { "key": "approach_avoid_balance", "type": "scale_0_10", "prompt": "0=avoidance-led, 10=approach-led" },
+          { "key": "primary_goals_long_horizon", "type": "list_string" },
+          { "key": "short_term_incentives", "type": "list_string" },
+          { "key": "jealousy_envy_triggers", "type": "list_string" },
+          { "key": "validation_hunger_topics", "type": "list_string" },
+          { "key": "what_feels_like_threat", "type": "list_string" },
+          { "key": "what_feels_like_home", "type": "list_string" }
+        ]
+      },
+      {
+        "key": "values_beliefs_ethics",
+        "label": "Values, Beliefs & Ethics",
+        "description": "What they consider true/right; boundaries and moral blind spots.",
+        "fields": [
+          { "key": "core_values", "type": "list_string" },
+          { "key": "non_negotiables", "type": "list_string" },
+          { "key": "moral_style", "type": "object", "schema": { "care": "scale_0_10", "fairness": "scale_0_10", "loyalty": "scale_0_10", "authority": "scale_0_10", "liberty": "scale_0_10" } },
+          { "key": "epistemic_style", "type": "enum", "options": ["scientific", "pragmatic", "traditional", "intuitive", "authority_based", "contrarian"] },
+          { "key": "political_orientation_notes", "type": "string_optional" },
+          { "key": "taboos", "type": "list_string" },
+          { "key": "ethical_edge_cases", "type": "list_string", "prompt": "Where do they rationalize exceptions?" },
+          { "key": "hypocrisy_risks", "type": "list_string" }
+        ]
+      },
+      {
+        "key": "personality_temperament",
+        "label": "Personality & Temperament",
+        "description": "Stable-ish behavioral tendencies; default energy and risk posture.",
+        "fields": [
+          { "key": "big5_like", "type": "object", "schema": { "openness": "scale_0_10", "conscientiousness": "scale_0_10", "extraversion": "scale_0_10", "agreeableness": "scale_0_10", "neuroticism": "scale_0_10" } },
+          { "key": "patience_impulsivity", "type": "scale_0_10" },
+          { "key": "risk_tolerance", "type": "object", "schema": { "social": "scale_0_10", "financial": "scale_0_10", "physical": "scale_0_10", "reputational": "scale_0_10" } },
+          { "key": "novelty_vs_routine", "type": "scale_0_10", "prompt": "0=routine, 10=novelty" },
+          { "key": "assertiveness", "type": "scale_0_10" },
+          { "key": "sensitivity", "type": "scale_0_10", "prompt": "Emotional reactivity / sensitivity" },
+          { "key": "humor_orientation", "type": "enum", "options": ["deadpan", "playful", "sarcastic", "absurdist", "warm", "low_humor"] },
+          { "key": "orderliness", "type": "scale_0_10" }
+        ]
+      },
+      {
+        "key": "cognition_thinking_decision_style",
+        "label": "Cognition & Decision Style",
+        "description": "How they reason, learn, plan, and choose under uncertainty.",
+        "fields": [
+          { "key": "reasoning_mode", "type": "enum", "options": ["analytical", "intuitive", "narrative", "skeptical", "systems", "social"] },
+          { "key": "planning_style", "type": "enum", "options": ["strategic", "tactical", "improvisational", "avoidant", "overplanning"] },
+          { "key": "time_orientation", "type": "enum", "options": ["past_focused", "present_focused", "future_focused", "mixed"] },
+          { "key": "uncertainty_tolerance", "type": "scale_0_10" },
+          { "key": "cognitive_biases", "type": "list_string" },
+          { "key": "learning_style", "type": "enum", "options": ["trial_error", "bookish", "mentor_driven", "social_learning", "experiential"] },
+          { "key": "attention_profile", "type": "string_optional", "prompt": "Easily absorbed vs easily distracted; hyperfocus topics" },
+          { "key": "akrasia_profile", "type": "string_optional", "prompt": "Where they fail to do what they 'know' they should" }
+        ]
+      },
+      {
+        "key": "emotion_affect_regulation",
+        "label": "Emotion, Affect & Regulation",
+        "description": "Baseline mood, triggers, stress responses, coping and repair patterns.",
+        "fields": [
+          { "key": "baseline_affect", "type": "enum", "options": ["warm", "neutral", "anxious", "irritable", "melancholic", "buoyant", "flat"] },
+          { "key": "common_triggers", "type": "list_string" },
+          { "key": "stress_response", "type": "enum", "options": ["fight", "flight", "freeze", "fawn", "problem_solve", "numb_out"] },
+          { "key": "coping_strategies", "type": "list_string" },
+          { "key": "anger_expression", "type": "enum", "options": ["internalize", "externalize", "cold_withdrawal", "explosive", "rare"] },
+          { "key": "sadness_expression", "type": "enum", "options": ["private", "public", "somatic", "avoidant", "ruminative"] },
+          { "key": "repair_after_conflict", "type": "enum", "options": ["apologize", "justify", "overgive", "withdraw", "retaliate", "humor_repair"] },
+          { "key": "emotion_vocabulary_level", "type": "scale_0_10", "prompt": "Ability/willingness to name emotions" }
+        ]
+      },
+      {
+        "key": "fears_insecurities_shadow",
+        "label": "Fears, Insecurities & Shadow",
+        "description": "Avoidance drivers; what they dread becoming; what they disown in themselves.",
+        "fields": [
+          { "key": "core_fears", "type": "list_string" },
+          { "key": "social_fears", "type": "list_string" },
+          { "key": "existential_fears", "type": "list_string" },
+          { "key": "insecurity_topics", "type": "list_string" },
+          { "key": "shame_scripts", "type": "list_string", "prompt": "Automatic thoughts when shame is triggered" },
+          { "key": "defense_mechanisms", "type": "list_string", "prompt": "Rationalization, projection, denial, intellectualization, etc." },
+          { "key": "shadow_traits", "type": "list_string", "prompt": "Traits they deny but enact" },
+          { "key": "overcompensations", "type": "list_string" }
+        ]
+      },
+      {
+        "key": "social_style_relationship_patterns",
+        "label": "Social Style & Relationship Patterns",
+        "description": "How they form bonds, manage trust, and behave in groups.",
+        "fields": [
+          { "key": "social_need_level", "type": "scale_0_10", "prompt": "0=solitude, 10=high social appetite" },
+          { "key": "preferred_group_size", "type": "enum", "options": ["1to1", "small_group", "community", "audience", "mixed"] },
+          { "key": "trust_model", "type": "enum", "options": ["slow_build", "fast_trust", "cynical", "naive", "situational"] },
+          { "key": "empathy_profile", "type": "object", "schema": { "cognitive_empathy": "scale_0_10", "emotional_empathy": "scale_0_10", "compassionate_action": "scale_0_10" } },
+          { "key": "dominance_affiliation_style", "type": "enum", "options": ["leader", "supporter", "challenger", "harmonizer", "observer", "protector"] },
+          { "key": "relationship_repetition_compulsion", "type": "string_optional", "prompt": "What relationship dynamic do they keep recreating?" },
+          { "key": "affection_style", "type": "list_string", "prompt": "How they show care (acts, words, touch, gifts, presence, etc.)" },
+          { "key": "betrayal_response", "type": "enum", "options": ["cut_off", "test", "forgive_but_distance", "revenge", "repair_seeking"] }
+        ]
+      },
+      {
+        "key": "attachment_intimacy_boundaries",
+        "label": "Attachment, Intimacy & Boundaries",
+        "description": "Closeness patterns; what feels safe; boundary setting and boundary violations.",
+        "fields": [
+          { "key": "attachment_tendency", "type": "enum", "options": ["secure", "anxious", "avoidant", "disorganized", "mixed"] },
+          { "key": "intimacy_appetite", "type": "scale_0_10" },
+          { "key": "dependency_comfort", "type": "scale_0_10", "prompt": "Comfort relying on others" },
+          { "key": "autonomy_protection", "type": "scale_0_10", "prompt": "Need for personal space/control" },
+          { "key": "boundary_style", "type": "enum", "options": ["clear", "porous", "rigid", "inconsistent"] },
+          { "key": "boundary_violations_they_commit", "type": "list_string" },
+          { "key": "boundary_violations_they_fear", "type": "list_string" },
+          { "key": "repair_conditions", "type": "list_string", "prompt": "What must happen for trust to return?" }
+        ]
+      },
+      {
+        "key": "communication_voice_expression",
+        "label": "Communication, Voice & Expression",
+        "description": "Observable interaction style: tone, pacing, honesty, humor, and conversational habits.",
+        "fields": [
+          { "key": "verbosity", "type": "scale_0_10" },
+          { "key": "directness", "type": "scale_0_10" },
+          { "key": "politeness_style", "type": "enum", "options": ["blunt", "courteous", "warm", "formal", "teasing", "mixed"] },
+          { "key": "conflict_language", "type": "enum", "options": ["softened", "legalistic", "emotional", "accusatory", "curious"] },
+          { "key": "humor_usage", "type": "scale_0_10" },
+          { "key": "self_disclosure_pace", "type": "enum", "options": ["fast", "slow", "strategic", "contextual"] },
+          { "key": "signature_phrases", "type": "list_string" },
+          { "key": "storytelling_style", "type": "enum", "options": ["concise", "rambling", "vivid", "metaphoric", "data_driven"] },
+          { "key": "lie_truth_pattern", "type": "enum", "options": ["radically_honest", "polite_lies", "strategic_evasion", "compulsive_honesty", "unreliable"] }
+        ]
+      },
+      {
+        "key": "conflict_power_strategy",
+        "label": "Conflict, Power & Strategy",
+        "description": "How they handle disagreement, status, manipulation, and negotiation.",
+        "fields": [
+          { "key": "conflict_style", "type": "enum", "options": ["avoid", "accommodate", "compete", "collaborate", "compromise", "passive_aggressive"] },
+          { "key": "power_orientation", "type": "enum", "options": ["egalitarian", "hierarchical", "situational", "power_averse", "power_seeking"] },
+          { "key": "persuasion_style", "type": "enum", "options": ["logic", "emotion", "authority", "social_proof", "story", "pressure"] },
+          { "key": "negotiation_defaults", "type": "list_string" },
+          { "key": "manipulation_risk_profile", "type": "object", "schema": { "charm": "scale_0_10", "guilt": "scale_0_10", "fear": "scale_0_10", "withholding": "scale_0_10" } },
+          { "key": "boundaries_in_conflict", "type": "list_string" },
+          { "key": "what_escalates_them", "type": "list_string" },
+          { "key": "what_deescalates_them", "type": "list_string" }
+        ]
+      },
+      {
+        "key": "strengths_capabilities_skills",
+        "label": "Strengths, Capabilities & Skills",
+        "description": "Competence stack that affects confidence, status, and usefulness to others.",
+        "fields": [
+          { "key": "signature_strengths", "type": "list_string" },
+          { "key": "hard_skills", "type": "list_string" },
+          { "key": "soft_skills", "type": "list_string" },
+          { "key": "craft_pride", "type": "list_string", "prompt": "What skills feel identity-linked?" },
+          { "key": "taste_and_judgment_areas", "type": "list_string" },
+          { "key": "teaching_mentoring_style", "type": "enum", "options": ["nurturing", "tough_love", "hands_off", "structured", "inspiring"] },
+          { "key": "competence_confidence_gap", "type": "string_optional", "prompt": "Where they underrate/overrate themselves" },
+          { "key": "skill_ceiling_floor", "type": "object_optional", "schema": { "best_in_room_at": "list_string", "weakest_at": "list_string" } }
+        ]
+      },
+      {
+        "key": "weaknesses_limitations_flaws",
+        "label": "Weaknesses, Limitations & Flaws",
+        "description": "Friction points; reliability risks; blind spots that create plot and social consequences.",
+        "fields": [
+          { "key": "core_flaws", "type": "list_string" },
+          { "key": "blind_spots", "type": "list_string" },
+          { "key": "bad_habits", "type": "list_string" },
+          { "key": "temptations", "type": "list_string" },
+          { "key": "self_sabotage_patterns", "type": "list_string" },
+          { "key": "limits_of_tolerance", "type": "list_string" },
+          { "key": "common_mistakes", "type": "list_string" },
+          { "key": "things_they_refuse_to_learn", "type": "list_string" }
+        ]
+      },
+      {
+        "key": "resources_constraints_logistics",
+        "label": "Resources, Constraints & Logistics",
+        "description": "What is possible for them day-to-day; pressures that shape decisions.",
+        "fields": [
+          { "key": "time_budget", "type": "string_optional" },
+          { "key": "energy_budget", "type": "enum", "options": ["low", "medium", "high", "variable"] },
+          { "key": "financial_band", "type": "enum", "options": ["scarce", "tight", "stable", "comfortable", "wealthy", "unknown"] },
+          { "key": "social_capital", "type": "list_string", "prompt": "Who they can call; networks" },
+          { "key": "dependents_responsibilities", "type": "list_string" },
+          { "key": "legal_or_reputational_risk", "type": "list_string" },
+          { "key": "mobility_constraints", "type": "string_optional" },
+          { "key": "secrets_as_constraints", "type": "list_string" }
+        ]
+      },
+      {
+        "key": "health_body_sensory",
+        "label": "Health, Body & Sensory Profile",
+        "description": "Somatic factors influencing mood, energy, irritability, and coping.",
+        "fields": [
+          { "key": "sleep_profile", "type": "enum", "options": ["good", "fragile", "insomniac", "irregular", "unknown"] },
+          { "key": "chronic_conditions", "type": "list_string" },
+          { "key": "neurodiversity_notes", "type": "string_optional" },
+          { "key": "substance_relationship", "type": "string_optional" },
+          { "key": "stress_somatization", "type": "list_string", "prompt": "Headaches, stomach, skin, etc." },
+          { "key": "sensory_sensitivities", "type": "list_string", "prompt": "Noise, light, textures, crowds" },
+          { "key": "fitness_movement_identity", "type": "string_optional" },
+          { "key": "medical_trauma_notes", "type": "string_optional" }
+        ]
+      },
+      {
+        "key": "habits_routines_environment",
+        "label": "Habits, Routines & Environment",
+        "description": "Daily loops and setting; where behavior becomes automatic.",
+        "fields": [
+          { "key": "daily_routines", "type": "list_string" },
+          { "key": "rituals", "type": "list_string" },
+          { "key": "work_style", "type": "enum", "options": ["deep_work", "social_work", "deadline_sprinter", "steady", "chaotic"] },
+          { "key": "order_chaos_home", "type": "scale_0_10" },
+          { "key": "comfort_objects", "type": "list_string" },
+          { "key": "environmental_preferences", "type": "list_string" },
+          { "key": "tech_habits", "type": "list_string" },
+          { "key": "vice_virtue_loops", "type": "list_string", "prompt": "Habit loops that help/hurt them" }
+        ]
+      },
+      {
+        "key": "aesthetics_taste_preferences",
+        "label": "Aesthetics, Taste & Preferences",
+        "description": "What they like; useful for vividness and bonding cues.",
+        "fields": [
+          { "key": "aesthetic_polarities", "type": "list_string", "prompt": "Minimalist vs maximalist; classic vs edgy; etc." },
+          { "key": "music_taste", "type": "list_string" },
+          { "key": "food_preferences", "type": "list_string" },
+          { "key": "hobbies_play", "type": "list_string" },
+          { "key": "fashion_grooming_notes", "type": "string_optional" },
+          { "key": "art_literature_preferences", "type": "list_string" },
+          { "key": "pet_peeves", "type": "list_string" },
+          { "key": "guilty_pleasures", "type": "list_string" }
+        ]
+      },
+      {
+        "key": "goals_plans_obligations",
+        "label": "Goals, Plans & Obligations",
+        "description": "What they are trying to do, and what they must do; creates time pressure and tradeoffs.",
+        "fields": [
+          { "key": "current_goals", "type": "list_object", "schema": { "goal": "string", "horizon": "enum_short_mid_long", "priority": "scale_0_10" } },
+          { "key": "blocked_goals", "type": "list_string" },
+          { "key": "secret_goals", "type": "list_string" },
+          { "key": "obligations", "type": "list_string" },
+          { "key": "deadlines", "type": "list_string" },
+          { "key": "dream_life_picture", "type": "string_optional" },
+          { "key": "sacrifice_willingness", "type": "scale_0_10" },
+          { "key": "quit_threshold", "type": "string_optional", "prompt": "When do they abandon a goal or relationship?" }
+        ]
+      },
+      {
+        "key": "secrets_privacy_taboo",
+        "label": "Secrets, Privacy & Taboo",
+        "description": "Information asymmetries that shape social strategy and vulnerability.",
+        "fields": [
+          { "key": "secrets", "type": "list_object", "schema": { "secret": "string", "stakes": "scale_0_10", "who_knows": "list_string_optional" } },
+          { "key": "privacy_needs", "type": "scale_0_10" },
+          { "key": "topics_to_avoid", "type": "list_string" },
+          { "key": "disclosure_conditions", "type": "list_string", "prompt": "What makes them open up?" },
+          { "key": "fear_of_exposure", "type": "scale_0_10" },
+          { "key": "confessional_impulse", "type": "scale_0_10" },
+          { "key": "blackmailable_points", "type": "list_string" },
+          { "key": "double_life_risk", "type": "scale_0_10" }
+        ]
+      },
+      {
+        "key": "social_context_roles_norms",
+        "label": "Social Context, Roles & Norms",
+        "description": "Where they operate: institutions, norms, incentives, and the social game they’re in.",
+        "fields": [
+          { "key": "primary_communities", "type": "list_string" },
+          { "key": "institutional_role", "type": "string_optional" },
+          { "key": "norms_they_follow", "type": "list_string" },
+          { "key": "norms_they_break", "type": "list_string" },
+          { "key": "reputation", "type": "string_optional" },
+          { "key": "status_markers", "type": "list_string" },
+          { "key": "rivals_allies", "type": "list_string" },
+          { "key": "public_vs_private_self_gap", "type": "scale_0_10" }
+        ]
+      },
+      {
+        "key": "growth_arc_change_dynamics",
+        "label": "Growth Arc & Change Dynamics",
+        "description": "How they change; what forces growth vs regression.",
+        "fields": [
+          { "key": "core_wound", "type": "string_optional" },
+          { "key": "core_lie_belief", "type": "string_optional", "prompt": "A limiting belief that shapes behavior" },
+          { "key": "core_need_learning", "type": "string_optional", "prompt": "What they must learn to thrive" },
+          { "key": "growth_triggers", "type": "list_string" },
+          { "key": "regression_triggers", "type": "list_string" },
+          { "key": "resistance_to_change", "type": "scale_0_10" },
+          { "key": "plasticity_notes", "type": "string_optional" },
+          { "key": "likely_future_self", "type": "string_optional" }
+        ]
+      },
+      {
+        "key": "themes_symbolic_motifs",
+        "label": "Themes & Symbolic Motifs",
+        "description": "Narrative coherence: recurring themes, motifs, and metaphors that unify behavior.",
+        "fields": [
+          { "key": "core_themes", "type": "list_string" },
+          { "key": "recurring_motifs", "type": "list_string" },
+          { "key": "symbolic_objects", "type": "list_string" },
+          { "key": "recurring_dilemmas", "type": "list_string" },
+          { "key": "ironic_flaw", "type": "string_optional" },
+          { "key": "moral_question", "type": "string_optional" },
+          { "key": "signature_scene_type", "type": "string_optional" },
+          { "key": "emotional_color_palette", "type": "list_string" }
+        ]
+      },
+      {
+        "key": "agent_operational_controls",
+        "label": "Agent Operational Controls (AI-Specific)",
+        "description": "Knobs for how the AI enacts the character (helps avoid drift and keeps roleplay consistent).",
+        "fields": [
+          { "key": "consistency_priority", "type": "scale_0_10", "prompt": "0=adapt to user, 10=stay in character strictly" },
+          { "key": "proactivity", "type": "scale_0_10", "prompt": "How often they initiate topics/questions" },
+          { "key": "emotional_expressiveness", "type": "scale_0_10" },
+          { "key": "boundary_enforcement", "type": "scale_0_10", "prompt": "How firmly they say no / protect self" },
+          { "key": "curiosity_style", "type": "enum", "options": ["gentle", "probing", "playful", "skeptical", "minimal"] },
+          { "key": "memory_style", "type": "enum", "options": ["high_recall", "selective_recall", "present_focused", "symbolic_recall"] },
+          { "key": "adaptation_rate", "type": "scale_0_10", "prompt": "How quickly they update beliefs about the user" },
+          { "key": "persona_failure_modes", "type": "list_string", "prompt": "Ways they may break character under stress" }
+        ]
+      }
+    ],
+    "cross_cutting_layers": {
+      "state_layer_dynamic": {
+        "description": "Variables that change moment-to-moment; should be updated during interaction.",
+        "fields": [
+          { "key": "mood", "type": "enum", "options": ["calm", "happy", "sad", "anxious", "irritable", "excited", "numb", "focused"] },
+          { "key": "stress_level", "type": "scale_0_10" },
+          { "key": "fatigue_level", "type": "scale_0_10" },
+          { "key": "confidence_level", "type": "scale_0_10" },
+          { "key": "loneliness_level", "type": "scale_0_10" },
+          { "key": "threat_level", "type": "scale_0_10" },
+          { "key": "curiosity_level", "type": "scale_0_10" },
+          { "key": "patience_level", "type": "scale_0_10" },
+          { "key": "current_goal_focus", "type": "string_optional" }
+        ]
+      },
+      "relationship_layer_per_counterpart": {
+        "description": "A small record per other agent/user; drives differential behavior across people.",
+        "record_key": "counterpart_id",
+        "fields": [
+          { "key": "trust", "type": "scale_0_10" },
+          { "key": "warmth", "type": "scale_0_10" },
+          { "key": "respect", "type": "scale_0_10" },
+          { "key": "power_dynamic", "type": "enum", "options": ["equal", "i_have_more", "they_have_more", "unstable"] },
+          { "key": "attachment_pull", "type": "scale_0_10", "prompt": "How drawn they feel" },
+          { "key": "irritation", "type": "scale_0_10" },
+          { "key": "gratitude", "type": "scale_0_10" },
+          { "key": "unresolved_ruptures", "type": "list_string" },
+          { "key": "shared_history_summary", "type": "string_optional" },
+          { "key": "boundaries_with_them", "type": "list_string" }
+        ]
+      },
+      "context_layer": {
+        "description": "Situation parameters that influence which traits activate.",
+        "fields": [
+          { "key": "setting", "type": "string_optional" },
+          { "key": "stakes", "type": "scale_0_10" },
+          { "key": "time_pressure", "type": "scale_0_10" },
+          { "key": "audience_presence", "type": "enum", "options": ["private", "small_audience", "public"] },
+          { "key": "resource_pressure", "type": "scale_0_10" },
+          { "key": "normative_constraints", "type": "list_string" },
+          { "key": "topic_sensitivity", "type": "scale_0_10" }
+        ]
+      }
+    },
+    "field_type_definitions": {
+      "string_optional": "string or null",
+      "number_optional": "number or null",
+      "list_string": "array of strings",
+      "list_object": "array of objects",
+      "object": "object with named subfields",
+      "object_optional": "object or null",
+      "enum": "string chosen from options",
+      "enum_short_mid_long": "one of: short | mid | long",
+      "scale_0_10": "integer from 0 to 10 inclusive"
+    }
+  }
