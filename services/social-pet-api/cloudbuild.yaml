@@ -1,0 +1,12 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - services/social-pet-api/Dockerfile
+      - -t
+      - us-central1-docker.pkg.dev/$PROJECT_ID/social-pet/social-pet-api-dev:latest
+      - .
+
+images:
+  - us-central1-docker.pkg.dev/$PROJECT_ID/social-pet/social-pet-api-dev:latest

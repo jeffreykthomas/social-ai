@@ -11,6 +11,12 @@ include/
 pip-selfcheck.json
 .DS_Store
 
+# Node and frontend artifacts
+node_modules/
+**/node_modules/
+*.tsbuildinfo
+.yarn-integrity
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -112,6 +118,11 @@ mistral/results/
 *.bin
 *.model
 
+# Social Pet generated artifacts (may contain personal data)
+model/transcripts/
+model/transcripts-index/
+model/users/
+
 # Experiment tracking
 wandb/
 
@@ -126,3 +137,9 @@ chat-backbone/*.pt
 # Personal files and notebooks
 chat-backbone/*.docx
 chat-backbone/playground.ipynb
+
+# Generated persona artifacts (large, re-generable)
+model/persona.generated*.json
+
+# Continuity ledgers (session-specific, keep template only)
+CONTINUITY-*.md

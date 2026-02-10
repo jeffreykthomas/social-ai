@@ -1,0 +1,22 @@
+{
+  "name": "social-ai",
+  "private": true,
+  "packageManager": "yarn@1.22.22",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "predev": "brew services start redis 2>/dev/null || true",
+    "dev": "concurrently -k -n api,web -c blue,green \"yarn dev:api\" \"yarn dev:web\"",
+    "postdev": "brew services stop redis >/dev/null 2>&1 &",
+    "dev:web": "yarn workspace @social-pet/web dev",
+    "dev:api": "yarn workspace @social-pet/api dev",
+    "build": "yarn workspace @social-pet/domain build && yarn workspace @social-pet/api build && yarn workspace @social-pet/web build",
+    "typecheck": "yarn workspace @social-pet/domain typecheck && yarn workspace @social-pet/api typecheck && yarn workspace @social-pet/web typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
