@@ -154,7 +154,7 @@ fi
 echo ""
 echo "Stack started."
 echo "- Sim UI:     http://localhost:8000/simulator_home"
-echo "- Monitor UI: http://localhost:8000/agent_monitor/ (predictive monitor; may be empty in classic mode)"
+echo "- Monitor UI: http://localhost:8000/agent_monitor/ (needs/monologue/predictions per agent)"
 echo "- vLLM:       http://localhost:8001/v1/models"
 echo "- Logs:       ${REPO_ROOT}/logs/"
 echo ""
