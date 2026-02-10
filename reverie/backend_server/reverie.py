@@ -46,6 +46,12 @@ try:
 except Exception:
   HybridPersona = None
 
+# Profile loader for Enneagram-inspired persona profiles (used in hybrid mode).
+try:
+  from persona.profiles.profile_loader import get_profile as _get_profile
+except Exception:
+  _get_profile = None
+
 ##############################################################################
 #                                  REVERIE                                   #
 ##############################################################################
@@ -133,12 +139,32 @@ class ReverieServer:
     init_env_file = f"{sim_folder}/environment/{str(self.step)}.json"
     init_env = json.load(open(init_env_file))
     agent_mode = os.environ.get("REVERIE_AGENT_MODE", "classic").strip().lower()
+
+    # In hybrid mode, try to load per-agent Enneagram profiles from the sim.
+    persona_profile_map = {}
+    if agent_mode == "hybrid" and HybridPersona is not None:
+      profiles_file = f"{sim_folder}/reverie/persona_profiles.json"
+      if check_if_file_exists(profiles_file):
+        try:
+          persona_profile_map = json.load(open(profiles_file))
+        except Exception:
+          persona_profile_map = {}
+
     for persona_name in reverie_meta['persona_names']: 
       persona_folder = f"{sim_folder}/personas/{persona_name}"
       p_x = init_env[persona_name]["x"]
       p_y = init_env[persona_name]["y"]
       if agent_mode == "hybrid" and HybridPersona is not None:
-        curr_persona = HybridPersona(persona_name, persona_folder)
+        # Resolve Enneagram profile for this agent (if available).
+        profile = None
+        profile_id = persona_profile_map.get(persona_name)
+        if profile_id and _get_profile is not None:
+          try:
+            profile = _get_profile(profile_id)
+          except Exception:
+            profile = None
+        curr_persona = HybridPersona(persona_name, persona_folder,
+                                     profile=profile)
       else:
         curr_persona = Persona(persona_name, persona_folder)
 
@@ -200,6 +226,152 @@ class ReverieServer:
     for persona_name, persona in self.personas.items(): 
       save_folder = f"{sim_folder}/personas/{persona_name}/bootstrap_memory"
       persona.save(save_folder)
+
+
+  def _write_monitor_snapshot(self):
+    """
+    Write an atomic JSON snapshot of all hybrid-persona overlay state to
+    ``distill_logs/monitor_state.json``.
+
+    The schema matches what ``agent_monitor.html`` polls via
+    ``/api/agent_states/``:
+
+    .. code-block:: json
+
+       {
+         "timestamp": "<wall-clock ISO>",
+         "sim_time": "<in-sim datetime>",
+         "step": 42,
+         "agents": {
+           "Agent Name": {
+             "needs": {"safety": 0.8, ...},
+             "monologue": [{"type": "...", "content": "..."}],
+             "predictions": [{"event": "...", "probability": 0.5, "impacts": ""}],
+             "socialModels": [],
+             "schedule": [{"activity": "...", "location": "...", "duration_minutes": 60}],
+             "profile_id": "enneagram_1",
+             "location": "the Ville:Hobbs Cafe:cafe",
+             "activity": "working on her painting"
+           }
+         }
+       }
+
+    Called once per step from ``start_server``.  Best-effort: any failure is
+    silently swallowed so the simulation keeps running.
+    """
+    try:
+      import tempfile
+
+      # Destination directory (relative to backend_server/).
+      monitor_dir = os.path.join(os.path.dirname(__file__), "distill_logs")
+      os.makedirs(monitor_dir, exist_ok=True)
+      dest = os.path.join(monitor_dir, "monitor_state.json")
+
+      agents = {}
+      for pname, persona in self.personas.items():
+        s = persona.scratch
+
+        # -- needs --
+        needs = {}
+        if isinstance(getattr(s, "need_states", None), dict):
+          needs = {k: round(float(v), 4) for k, v in s.need_states.items()}
+
+        # -- monologue (last 20 entries) --
+        monologue = []
+        raw_mono = getattr(s, "internal_monologue", None) or []
+        for entry in raw_mono[-20:]:
+          if isinstance(entry, dict):
+            monologue.append({
+              "type": str(entry.get("type", "thought")),
+              "content": str(entry.get("content", "")),
+            })
+
+        # -- predictions --
+        predictions = []
+        raw_preds = getattr(s, "prediction_buffer", None) or []
+        for pred in raw_preds:
+          if isinstance(pred, dict):
+            predictions.append({
+              "event": str(pred.get("event", "")),
+              "probability": float(pred.get("probability", 0)),
+              "impacts": str(pred.get("impacts", "")),
+            })
+
+        # -- schedule (derive from f_daily_schedule) --
+        schedule = []
+        for row in (s.f_daily_schedule or []):
+          if not isinstance(row, (list, tuple)) or len(row) < 2:
+            continue
+          act_raw = str(row[0])
+          dur = int(row[1])
+          # Parse "activity @ location" convention
+          if " @ " in act_raw:
+            act_part, loc_part = act_raw.split(" @ ", 1)
+          else:
+            act_part = act_raw
+            loc_part = ""
+          schedule.append({
+            "activity": act_part.strip(),
+            "location": loc_part.strip(),
+            "duration_minutes": dur,
+          })
+
+        # -- location / activity --
+        location = s.act_address or s.living_area or ""
+        activity = s.act_description or ""
+
+        # -- profile id --
+        profile_id = getattr(s, "persona_profile_id", None) or ""
+        # Also check persona-level attribute (HybridPersona stores it).
+        if not profile_id:
+          profile_id = getattr(persona, "persona_profile_id", None) or ""
+
+        # -- judge verdict (latest narrative + magnitude from the judge agent) --
+        judge_narrative = ""
+        judge_magnitude = ""
+        try:
+          verdict = getattr(persona, "_current_verdict", None)
+          if isinstance(verdict, dict):
+            judge_narrative = str(verdict.get("narrative", ""))
+            judge_magnitude = str(verdict.get("magnitude", ""))
+        except Exception:
+          pass
+
+        agents[pname] = {
+          "needs": needs,
+          "monologue": monologue,
+          "predictions": predictions,
+          "socialModels": [],
+          "schedule": schedule,
+          "profile_id": profile_id,
+          "location": location,
+          "activity": activity,
+          "judge_narrative": judge_narrative,
+          "judge_magnitude": judge_magnitude,
+        }
+
+      snapshot = {
+        "timestamp": datetime.datetime.now().isoformat(),
+        "sim_time": self.curr_time.strftime("%B %d, %Y, %H:%M:%S"),
+        "step": self.step,
+        "agents": agents,
+      }
+
+      # Atomic write: write to a temp file in the same dir, then rename.
+      fd, tmp = tempfile.mkstemp(dir=monitor_dir, suffix=".tmp")
+      try:
+        with os.fdopen(fd, "w") as f:
+          json.dump(snapshot, f, indent=2)
+        os.replace(tmp, dest)
+      except Exception:
+        # Clean up temp file on error.
+        try:
+          os.unlink(tmp)
+        except Exception:
+          pass
+    except Exception:
+      # Never crash the sim loop over monitoring IO.
+      pass
 
 
   def start_path_tester_server(self): 
@@ -379,27 +551,54 @@ class ReverieServer:
                        None, None, None)
               self.maze.remove_event_from_tile(blank, new_tile)
 
-          # Then we need to actually have each of the personas perceive and
-          # move. The movement for each of the personas comes in the form of
-          # x y coordinates where the persona will move towards. e.g., (50, 34)
-          # This is where the core brains of the personas are invoked. 
-          movements = {"persona": dict(), 
-                       "meta": dict()}
-          for persona_name, persona in self.personas.items(): 
-            # <next_tile> is a x,y coordinate. e.g., (58, 9)
-            # <pronunciatio> is an emoji. e.g., "\ud83d\udca4"
-            # <description> is a string description of the movement. e.g., 
-            #   writing her next novel (editing her novel) 
-            #   @ double studio:double studio:common room:sofa
-            next_tile, pronunciatio, description = persona.move(
-              self.maze, self.personas, self.personas_tile[persona_name], 
-              self.curr_time)
-            movements["persona"][persona_name] = {}
-            movements["persona"][persona_name]["movement"] = next_tile
-            movements["persona"][persona_name]["pronunciatio"] = pronunciatio
-            movements["persona"][persona_name]["description"] = description
-            movements["persona"][persona_name]["chat"] = (persona
-                                                          .scratch.chat)
+          # FAST-FORWARD: if every persona is sleeping (act_description
+          # contains "sleeping" or is None at midnight), skip the expensive
+          # LLM-based perceive/plan/execute loop and just hold positions.
+          # This turns 6+ hours of nighttime from ~2000 LLM calls into zero.
+          all_sleeping = True
+          for persona_name, persona in self.personas.items():
+            desc = (persona.scratch.act_description or "").lower()
+            if desc and "sleep" not in desc:
+              all_sleeping = False
+              break
+
+          if all_sleeping and self.curr_time.hour < 6:
+            # Fast-forward: keep everyone at their current tile, no LLM calls.
+            movements = {"persona": dict(), "meta": dict()}
+            for persona_name, persona in self.personas.items():
+              tile = self.personas_tile[persona_name]
+              persona.scratch.curr_tile = tile
+              persona.scratch.curr_time = self.curr_time
+              movements["persona"][persona_name] = {
+                "movement": list(tile),
+                "pronunciatio": "\U0001f4a4",
+                "description": persona.scratch.act_description or "sleeping",
+                "chat": None,
+              }
+          else:
+            # Normal path: full cognitive loop for each persona.
+
+            # Then we need to actually have each of the personas perceive and
+            # move. The movement for each of the personas comes in the form of
+            # x y coordinates where the persona will move towards. e.g., (50, 34)
+            # This is where the core brains of the personas are invoked. 
+            movements = {"persona": dict(), 
+                         "meta": dict()}
+            for persona_name, persona in self.personas.items(): 
+              # <next_tile> is a x,y coordinate. e.g., (58, 9)
+              # <pronunciatio> is an emoji. e.g., "\ud83d\udca4"
+              # <description> is a string description of the movement. e.g., 
+              #   writing her next novel (editing her novel) 
+              #   @ double studio:double studio:common room:sofa
+              next_tile, pronunciatio, description = persona.move(
+                self.maze, self.personas, self.personas_tile[persona_name], 
+                self.curr_time)
+              movements["persona"][persona_name] = {}
+              movements["persona"][persona_name]["movement"] = next_tile
+              movements["persona"][persona_name]["pronunciatio"] = pronunciatio
+              movements["persona"][persona_name]["description"] = description
+              movements["persona"][persona_name]["chat"] = (persona
+                                                            .scratch.chat)
 
           # Include the meta information about the current stage in the 
           # movements dictionary. 
@@ -428,6 +627,9 @@ class ReverieServer:
           # current time moves by <sec_per_step> amount. 
           self.step += 1
           self.curr_time += datetime.timedelta(seconds=self.sec_per_step)
+
+          # Write monitor snapshot so the agent_monitor UI can poll it.
+          self._write_monitor_snapshot()
 
           int_counter -= 1
           

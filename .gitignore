@@ -142,3 +142,16 @@ model/persona.generated*.json
 
 # Continuity ledgers (session-specific, keep template only)
 CONTINUITY-*.md
+
+# Simulation run outputs (large, re-generable per run)
+environment/frontend_server/storage/hybrid_*/
+environment/frontend_server/storage/enneagram*_*/
+environment/frontend_server/temp_storage/curr_step.json
+environment/frontend_server/temp_storage/curr_sim_code.json
+
+# Distillation / training logs (generated, can be large)
+reverie/backend_server/distill_logs/
+reverie/backend_server/reverie/backend_server/distill_logs/
+
+# Local run scripts and PID files
+run/

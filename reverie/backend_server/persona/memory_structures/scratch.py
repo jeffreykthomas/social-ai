@@ -168,6 +168,7 @@ class Scratch:
     self.prediction_buffer = []   # list[{event,probability,impacts?}]
     self.last_schedule_adjust_time = None  # str "%B %d, %Y, %H:%M:%S" or None
     self.recent_event_descriptions = []    # list[str]
+    self.persona_profile_id = None  # str e.g. "enneagram_1" or None
 
     if f_saved and check_if_file_exists(f_saved): 
       # If we have a bootstrap file, load that here. 
@@ -265,6 +266,10 @@ class Scratch:
         self.last_schedule_adjust_time = scratch_load.get("last_schedule_adjust_time", None)
       except Exception:
         self.last_schedule_adjust_time = None
+      try:
+        self.persona_profile_id = scratch_load.get("persona_profile_id", None)
+      except Exception:
+        self.persona_profile_id = None
 
 
   def save(self, out_json):
@@ -345,6 +350,7 @@ class Scratch:
     scratch["prediction_buffer"] = self.prediction_buffer
     scratch["recent_event_descriptions"] = self.recent_event_descriptions
     scratch["last_schedule_adjust_time"] = self.last_schedule_adjust_time
+    scratch["persona_profile_id"] = self.persona_profile_id
 
     with open(out_json, "w") as outfile:
       json.dump(scratch, outfile, indent=2) 

@@ -2,67 +2,74 @@
 # This file defines the parameters for the predictive need-based agent system
 
 # Need definitions and initial values
+#
+# Decay rates are per sim-step (default 10 sim-seconds).
+# A waking day is ~5760 steps (16h). Rates are tuned so that an
+# unreplenished need drops from 1.0 to ~0.2 over a full waking day,
+# giving agents time to notice and act before needs bottom out.
+# Faster-decaying needs (fun, empathy) create more frequent action
+# pressure; slower ones (safety, purpose) are background concerns.
 needs:
   connection:
     description: "Desire for meaningful relationships and belonging"
     initial_value: 0.5
-    decay_rate: 0.01  # per timestep
+    decay_rate: 0.00015
     priority_weight: 1.5
     critical_threshold: 0.3
     
   safety:
     description: "Need for physical and emotional security"
     initial_value: 0.8
-    decay_rate: 0.005
+    decay_rate: 0.00008
     priority_weight: 2.0
     critical_threshold: 0.4
     
   approval:
     description: "Desire for recognition and validation from others"
     initial_value: 0.6
-    decay_rate: 0.008
+    decay_rate: 0.00012
     priority_weight: 1.2
     critical_threshold: 0.3
     
   empathy:
     description: "Need to understand and be understood emotionally"
     initial_value: 0.4
-    decay_rate: 0.012
+    decay_rate: 0.00018
     priority_weight: 1.0
     critical_threshold: 0.25
     
   fun:
     description: "Desire for joy, play, and entertainment"
     initial_value: 0.3
-    decay_rate: 0.015
+    decay_rate: 0.00020
     priority_weight: 0.8
     critical_threshold: 0.2
     
   attention:
     description: "Need to be noticed and acknowledged"
     initial_value: 0.5
-    decay_rate: 0.01
+    decay_rate: 0.00015
     priority_weight: 1.0
     critical_threshold: 0.3
     
   achievement:
     description: "Desire to accomplish goals and feel competent"
     initial_value: 0.5
-    decay_rate: 0.008
+    decay_rate: 0.00012
     priority_weight: 1.1
     critical_threshold: 0.3
     
   autonomy:
     description: "Need for independence and self-direction"
     initial_value: 0.7
-    decay_rate: 0.006
+    decay_rate: 0.00010
     priority_weight: 1.3
     critical_threshold: 0.35
     
   purpose:
     description: "Desire for meaning and contribution to something larger"
     initial_value: 0.6
-    decay_rate: 0.004
+    decay_rate: 0.00006
     priority_weight: 1.4
     critical_threshold: 0.3
 

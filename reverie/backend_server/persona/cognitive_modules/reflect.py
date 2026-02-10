@@ -44,7 +44,6 @@ def generate_insights_and_evidence(persona, nodes, n=5):
 
   ret = run_gpt_prompt_insight_and_guidance(persona, statements, n)[0]
 
-  print (ret)
   try: 
 
     for thought, evi_raw in ret.items(): 
@@ -115,9 +114,6 @@ def run_reflect(persona):
   # For each of the focal points, generate thoughts and save it in the 
   # agent's memory. 
   for focal_pt, nodes in retrieved.items(): 
-    xx = [i.embedding_key for i in nodes]
-    for xxx in xx: print (xxx)
-
     thoughts = generate_insights_and_evidence(persona, nodes, 5)
     for thought, evidence in thoughts.items(): 
       created = persona.scratch.curr_time
@@ -146,9 +142,6 @@ def reflection_trigger(persona):
     True if we are running a new reflection. 
     False otherwise. 
   """
-  print (persona.scratch.name, "persona.scratch.importance_trigger_curr::", persona.scratch.importance_trigger_curr)
-  print (persona.scratch.importance_trigger_max)
-
   if (persona.scratch.importance_trigger_curr <= 0 and 
       [] != persona.a_mem.seq_event + persona.a_mem.seq_thought): 
     return True 
