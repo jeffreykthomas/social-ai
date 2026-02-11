@@ -111,6 +111,12 @@ ENV/
 
 # Model files and training artifacts
 models/
+# But keep the backend models/ package (Python source, not weights)
+!reverie/backend_server/models/
+# Still ignore weight files inside it
+reverie/backend_server/models/*.safetensors
+reverie/backend_server/models/*.pt
+reverie/backend_server/models/*.bin
 results/
 mistral/results/
 *.pt

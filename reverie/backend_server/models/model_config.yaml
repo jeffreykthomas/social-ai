@@ -1,0 +1,58 @@
+# Model routing configuration (teacher/student + per-task overrides)
+#
+# Tasks are free-form strings (e.g. "externalize", "action", "reflection").
+# Teacher is always OpenAI API. Student is always local OpenAI-compatible endpoint.
+#
+# Student model: GPT-OSS-120B (OpenAI open-weight MoE, Apache 2.0)
+#   - 117B total params, 5.1B active  ->  fits on a single 80GB GPU
+#   - Native tool calling trained by OpenAI
+#   - vLLM-optimised MoE kernels for fast inference
+#   - Fine-tunable via LoRA (see scripts/finetune_student.py)
+#
+# To fall back to Qwen, override via env: MODEL=Qwen/Qwen2.5-32B-Instruct
+# or edit the student.model field below.
+
+teacher:
+  provider: openai
+  # Set via env var OPENAI_API_KEY (see reverie/backend_server/utils.py)
+  # Per-task model selection:
+  models:
+    externalize: gpt-4o-mini
+    social: gpt-4o-mini
+    planning: gpt-4o-mini
+    reflection: gpt-4o
+    empathy: gpt-4o-mini
+    action: gpt-4o-mini
+    schedule: gpt-4o-mini
+    judge: gpt-5.2
+  default_model: gpt-4o-mini
+
+student:
+  provider: openai_compat_http
+  # vLLM OpenAI-compatible server (see scripts/run_vllm_qwen_student.sh)
+  base_url: http://localhost:8001/v1
+  api_key: local-dev
+  model: student-distilled
+
+distillation:
+  enabled: true
+  # Logs are appended as JSONL; safe to rsync into a training box.
+  output_dir: distill_logs
+  log_teacher: true
+  log_student: true
+
+runtime:
+  # Choose which provider to use per task.
+  #
+  # With GPT-OSS's strong native tool calling, we can route more tasks to the
+  # student to reduce OpenAI API costs.  Only "externalize" (free-form
+  # dialogue) stays on the teacher for now -- its quality is hardest to match.
+  task_providers:
+    externalize: teacher
+    action: student
+    schedule: student
+    reflection: student
+    empathy: teacher
+    judge: teacher
+
+
