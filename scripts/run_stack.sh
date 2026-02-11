@@ -5,8 +5,14 @@ set -euo pipefail
 # - vLLM student server (8001)
 # - Django environment/monitor (8000)
 # - simulation loop
+# - (optional) training watcher for online distillation
 #
 # Logs go to ./logs/*.log, pids to ./run/*.pid
+#
+# Environment:
+#   ENABLE_TRAINING=1     Launch the training watcher (default: off)
+#   TRAIN_THRESHOLD=300   New teacher entries before training triggers
+#   TRAIN_POLL=300        Seconds between watcher polls
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV_BIN="${REPO_ROOT}/venv/bin"
@@ -151,12 +157,31 @@ else
   fi
 fi
 
+# 4) Optional: Training watcher (online distillation)
+ENABLE_TRAINING="${ENABLE_TRAINING:-0}"
+if [[ "${ENABLE_TRAINING}" == "1" ]]; then
+  WATCHER_PID="$( (pgrep -af "training_watcher.sh" 2>/dev/null || true) | awk 'NR==1{print $1}')"
+  if [[ -n "${WATCHER_PID:-}" ]] && pid_alive "${WATCHER_PID}"; then
+    echo "${WATCHER_PID}" > "${REPO_ROOT}/run/trainer.pid"
+    echo "trainer: already running (pid ${WATCHER_PID})"
+  else
+    start_bg "trainer" bash "${REPO_ROOT}/scripts/training_watcher.sh" \
+      --threshold "${TRAIN_THRESHOLD:-300}" \
+      --poll-interval "${TRAIN_POLL:-300}"
+  fi
+  echo "trainer: watcher active (log: ${REPO_ROOT}/logs/training.log)"
+fi
+
 echo ""
 echo "Stack started."
 echo "- Sim UI:     http://localhost:8000/simulator_home"
 echo "- Monitor UI: http://localhost:8000/agent_monitor/ (needs/monologue/predictions per agent)"
 echo "- vLLM:       http://localhost:8001/v1/models"
 echo "- Logs:       ${REPO_ROOT}/logs/"
+if [[ "${ENABLE_TRAINING}" == "1" ]]; then
+  echo "- Training:   watcher active (threshold=${TRAIN_THRESHOLD:-300}, poll=${TRAIN_POLL:-300}s)"
+  echo "              log: ${REPO_ROOT}/logs/training.log"
+fi
 echo ""
 
 

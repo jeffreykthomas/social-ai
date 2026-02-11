@@ -79,8 +79,21 @@ def execute(persona, maze, personas, plan):
     elif "<random>" in plan: 
       # Executing a random location action.
       plan = ":".join(plan.split(":")[:-1])
-      target_tiles = maze.address_tiles[plan]
-      target_tiles = random.sample(list(target_tiles), 1)
+      plan = plan.rstrip(":")  # trim empty trailing segments
+      if plan in maze.address_tiles:
+        target_tiles = maze.address_tiles[plan]
+        target_tiles = random.sample(list(target_tiles), 1)
+      else:
+        # Fallback: try progressively shorter address prefixes.
+        parts = plan.split(":")
+        for k in range(len(parts) - 1, 0, -1):
+          shorter = ":".join(parts[:k])
+          if shorter in maze.address_tiles:
+            target_tiles = maze.address_tiles[shorter]
+            target_tiles = random.sample(list(target_tiles), 1)
+            break
+        if target_tiles is None:
+          target_tiles = [persona.scratch.curr_tile]
 
     else: 
       # This is our default execution. We simply take the persona to the
@@ -88,10 +101,19 @@ def execute(persona, maze, personas, plan):
       # Retrieve the target addresses. Again, plan is an action address in its
       # string form. <maze.address_tiles> takes this and returns candidate 
       # coordinates. 
-      if plan not in maze.address_tiles: 
-        maze.address_tiles["Johnson Park:park:park garden"] #ERRORRRRRRR
+      plan_clean = plan.rstrip(":")
+      if plan_clean in maze.address_tiles: 
+        target_tiles = maze.address_tiles[plan_clean]
       else: 
-        target_tiles = maze.address_tiles[plan]
+        # Fallback: try progressively shorter address prefixes.
+        parts = plan_clean.split(":")
+        for k in range(len(parts) - 1, 0, -1):
+          shorter = ":".join(parts[:k])
+          if shorter in maze.address_tiles:
+            target_tiles = maze.address_tiles[shorter]
+            break
+        if target_tiles is None:
+          target_tiles = [persona.scratch.curr_tile]
 
     # There are sometimes more than one tile returned from this (e.g., a tabe
     # may stretch many coordinates). So, we sample a few here. And from that 
