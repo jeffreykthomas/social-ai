@@ -41,10 +41,16 @@ for arg in "$@"; do
   esac
 done
 
-DISTILL_LOGS="${REPO_ROOT}/reverie/backend_server/distill_logs"
+DISTILL_LOGS="${DISTILL_LOGS:-${REPO_ROOT}/model/training/arena}"
 TEACHER_LOG="${DISTILL_LOGS}/teacher.jsonl"
 TRAINING_DIR="${DISTILL_LOGS}/training"
 OUTPUT_DIR="${REPO_ROOT}/models/student_lora"
+
+if [[ ! -f "${TEACHER_LOG}" ]] && [[ -f "${REPO_ROOT}/reverie/backend_server/distill_logs/teacher.jsonl" ]]; then
+  DISTILL_LOGS="${REPO_ROOT}/reverie/backend_server/distill_logs"
+  TEACHER_LOG="${DISTILL_LOGS}/teacher.jsonl"
+  TRAINING_DIR="${DISTILL_LOGS}/training"
+fi
 
 echo "============================================"
 echo " Student Training Pipeline"

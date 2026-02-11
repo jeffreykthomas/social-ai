@@ -158,6 +158,7 @@ environment/frontend_server/temp_storage/curr_sim_code.json
 # Distillation / training logs (generated, can be large)
 reverie/backend_server/distill_logs/
 reverie/backend_server/reverie/backend_server/distill_logs/
+model/training/
 
 # Local run scripts and PID files
 run/

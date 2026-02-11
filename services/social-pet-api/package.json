@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/app.ts",
     "persona:generate": "node --import tsx src/scripts/persona/generateAdversarial.ts",
+    "arena:simulate": "node --import tsx src/scripts/training/runArena.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",

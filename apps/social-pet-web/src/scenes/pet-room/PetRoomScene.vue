@@ -21,6 +21,7 @@ let body: Graphics | null = null;
 let eyeLeft: Graphics | null = null;
 let eyeRight: Graphics | null = null;
 let mouth: Graphics | null = null;
+let resizeObserver: ResizeObserver | null = null;
 
 const motion = {
   elapsed: 0,
@@ -180,18 +181,14 @@ async function setupPixi(): Promise<void> {
     drawCreature();
   });
 
-  const observer = new ResizeObserver(() => {
+  resizeObserver = new ResizeObserver(() => {
     if (!app || !host.value) return;
     app.renderer.resize(Math.max(320, host.value.clientWidth), 240);
     chooseNewTarget();
     drawCreature();
   });
 
-  observer.observe(host.value);
-
-  onUnmounted(() => {
-    observer.disconnect();
-  });
+  resizeObserver.observe(host.value);
 }
 
 onMounted(async () => {
@@ -199,6 +196,8 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  resizeObserver?.disconnect();
+  resizeObserver = null;
   app?.destroy(true, { children: true });
   app = null;
   rootContainer = null;

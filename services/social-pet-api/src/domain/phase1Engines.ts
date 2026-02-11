@@ -20,6 +20,7 @@ import type {
   UserFact,
   UserFactCategory
 } from '@social-pet/domain';
+import { loadSocialPetGameConfig } from '../config/gameConfig';
 
 const assessmentKeys: AssessmentDimensionKey[] = [
   'warmth',
@@ -28,11 +29,11 @@ const assessmentKeys: AssessmentDimensionKey[] = [
   'emotional_attunement'
 ];
 
-const TOTAL_DAYS = 14;
-const SESSION_WINDOW_MINUTES = 10;
-const INTERACTIONS_PER_SESSION_MIN = 3;
-const INTERACTIONS_PER_SESSION_MAX = 10;
-const INTERACTIONS_HARD_CAP = 14;
+const GAME_CONFIG = loadSocialPetGameConfig();
+const TIMELINE_CONFIG = GAME_CONFIG.gameplay.timeline;
+const STAGE_GATES = GAME_CONFIG.gameplay.stageGates;
+const ACT_CONFIG = GAME_CONFIG.gameplay.acts;
+const TRIAL_WINDOW = GAME_CONFIG.gameplay.trialWindow;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function clamp(value: number, min: number, max: number): number {
@@ -57,11 +58,11 @@ function confidenceForSamples(samples: number): number {
 
 export function createInitialTimelineState(nowIso = new Date().toISOString()): GameTimelineState {
   return {
-    totalDays: TOTAL_DAYS,
+    totalDays: TIMELINE_CONFIG.totalDays,
     currentDay: 1,
-    sessionWindowMinutes: SESSION_WINDOW_MINUTES,
-    interactionsPerSessionMin: INTERACTIONS_PER_SESSION_MIN,
-    interactionsPerSessionMax: INTERACTIONS_PER_SESSION_MAX,
+    sessionWindowMinutes: TIMELINE_CONFIG.sessionWindowMinutes,
+    interactionsPerSessionMin: TIMELINE_CONFIG.interactionsPerSessionMin,
+    interactionsPerSessionMax: TIMELINE_CONFIG.interactionsPerSessionMax,
     interactionsToday: 0,
     sessionsCompleted: 0,
     startedAt: nowIso,
@@ -139,7 +140,7 @@ export function healthStatusForValue(value: number): HealthStatus {
 export function canAcceptInteraction(timeline: GameTimelineState, outcome: SessionOutcomeState): { ok: boolean; reason?: string } {
   if (outcome.ended) return { ok: false, reason: 'session_ended' };
   if (timeline.currentDay > timeline.totalDays) return { ok: false, reason: 'timeline_complete' };
-  if (timeline.interactionsToday >= INTERACTIONS_HARD_CAP) {
+  if (timeline.interactionsToday >= TIMELINE_CONFIG.interactionsHardCap) {
     return { ok: false, reason: 'session_window_exhausted' };
   }
   return { ok: true };
@@ -186,22 +187,24 @@ export function advanceTimelineDay(
 }
 
 export function stageForTimeline(day: number, totalInteractions: number): StageMode {
-  if (day >= 12 && totalInteractions >= 33) return 'old';
-  if (day >= 8 && totalInteractions >= 21) return 'wise';
-  if (day >= 4 && totalInteractions >= 9) return 'middle_aged';
+  if (day >= STAGE_GATES.old.minDay && totalInteractions >= STAGE_GATES.old.minInteractions) return 'old';
+  if (day >= STAGE_GATES.wise.minDay && totalInteractions >= STAGE_GATES.wise.minInteractions) return 'wise';
+  if (day >= STAGE_GATES.middle_aged.minDay && totalInteractions >= STAGE_GATES.middle_aged.minInteractions) {
+    return 'middle_aged';
+  }
   return 'young_adult';
 }
 
 export function actForTimelineDay(day: number): HeroJourneyAct {
-  if (day >= 12) return 'integration';
-  if (day >= 8) return 'trials_and_friction';
+  if (day >= ACT_CONFIG.integrationStartDay) return 'integration';
+  if (day >= ACT_CONFIG.trialsAndFrictionStartDay) return 'trials_and_friction';
   return 'safe_bonding';
 }
 
 export function activeTrialForTimeline(day: number, healthStatus: HealthStatus): string | null {
-  if (day < 8 || day > 11) return null;
+  if (day < TRIAL_WINDOW.startDay || day > TRIAL_WINDOW.endDay) return null;
   if (healthStatus === 'withering' || healthStatus === 'dying') return 'survival_repair';
-  if (day <= 9) return 'identity_crisis';
+  if (day <= TRIAL_WINDOW.earlyRepairCutoffDay) return 'identity_crisis';
   return 'repair_trials';
 }
 

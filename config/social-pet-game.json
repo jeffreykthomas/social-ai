@@ -1,0 +1,42 @@
+{
+  "gameplay": {
+    "timeline": {
+      "totalDays": 14,
+      "sessionWindowMinutes": 10,
+      "interactionsPerSessionMin": 3,
+      "interactionsPerSessionMax": 10,
+      "interactionsHardCap": 14
+    },
+    "stageGates": {
+      "middle_aged": {
+        "minDay": 4,
+        "minInteractions": 9
+      },
+      "wise": {
+        "minDay": 8,
+        "minInteractions": 21
+      },
+      "old": {
+        "minDay": 12,
+        "minInteractions": 33
+      }
+    },
+    "acts": {
+      "trialsAndFrictionStartDay": 8,
+      "integrationStartDay": 12
+    },
+    "trialWindow": {
+      "startDay": 8,
+      "endDay": 11,
+      "earlyRepairCutoffDay": 9
+    }
+  },
+  "arena": {
+    "defaultMode": "social_pet",
+    "defaultModelCount": 9,
+    "defaultPairingsPerModel": 8,
+    "defaultTurnsPerDay": 6,
+    "teacherLogPath": "model/training/arena/teacher.jsonl",
+    "summaryPath": "model/training/arena/summary.json"
+  }
+}

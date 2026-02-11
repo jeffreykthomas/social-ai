@@ -26,7 +26,6 @@ pid_listening_on_port () {
 
 kill_tree () {
   local pid="$1"
-  # Kill children first (best-effort)
   if command -v pgrep >/dev/null 2>&1; then
     local kids
     kids="$(pgrep -P "${pid}" 2>/dev/null || true)"
@@ -58,14 +57,27 @@ stop_pid () {
 
 echo "Stopping stack..."
 
-# 1) Stop sim (classic or predictive) even if pidfile is missing/stale
+# 1) Stop simulation/arena loop
 stop_pid "sim"
 if command -v pkill >/dev/null 2>&1; then
+  pkill -f "arena:simulate" 2>/dev/null || true
   pkill -f "python .*scripts/run_reverie_headless.py" 2>/dev/null || true
   pkill -f "python .*reverie/backend_server/scripts/run_sim_loop.py" 2>/dev/null || true
 fi
 
-# 2) Stop Django (autoreload can change PID; prefer port-based kill)
+# 2) Stop Social Pet API (:3001)
+stop_pid "api"
+API_PID="$(pid_listening_on_port 3001 || true)"
+if pid_alive "${API_PID:-}"; then
+  echo "Stopping API listener on :3001 (pid ${API_PID})..."
+  kill_tree "${API_PID}"
+fi
+if command -v pkill >/dev/null 2>&1; then
+  pkill -f "yarn dev:api" 2>/dev/null || true
+  pkill -f "tsx watch src/app.ts" 2>/dev/null || true
+fi
+
+# 3) Stop Django (:8000)
 stop_pid "django"
 DJ_PID="$(pid_listening_on_port 8000 || true)"
 if pid_alive "${DJ_PID:-}"; then
@@ -76,7 +88,7 @@ if command -v pkill >/dev/null 2>&1; then
   pkill -f "python .*manage.py runserver .*:8000" 2>/dev/null || true
 fi
 
-# 3) Stop vLLM (pidfile may be stale; prefer port-based kill)
+# 4) Stop vLLM (:8001)
 stop_pid "vllm"
 VLLM_PID="$(pid_listening_on_port 8001 || true)"
 if pid_alive "${VLLM_PID:-}"; then
@@ -89,5 +101,3 @@ if command -v pkill >/dev/null 2>&1; then
 fi
 
 echo "Done."
-
-

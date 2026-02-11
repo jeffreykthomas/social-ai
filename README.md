@@ -144,19 +144,14 @@ For implementation details, configuration, and API additions, see `PREDICTIVE_AG
 
 ## Running the Modern Teacher/Student Stack (Recommended)
 
-This repo includes a teacher/student architecture:
-- **Teacher**: OpenAI (via the **Responses API**) for high-quality dialogue, scheduling, and supervision.
-- **Student**: local open-source model served via **vLLM** (OpenAI-compatible `/v1/chat/completions`) for tool-calling / actions.
+`scripts/run_stack.sh` now defaults to a **Social Pet arena** that mirrors the production game loop:
+- Social Pet API on `:3001`
+- Arena simulation loop (two persona-driven agents interacting through Social Pet game mechanics)
+- Optional vLLM on `:8001` if `START_VLLM=true` (default)
 
-### One-command local stack
-
-This starts:
-- vLLM (student) on `:8001`
-- Django environment + monitor on `:8000`
-- simulation loop (writes monitor state + distillation logs)
+### One-command local stack (Social Pet arena)
 
 ```bash
-source venv/bin/activate
 ./scripts/run_stack.sh
 ```
 
@@ -166,13 +161,18 @@ Stop everything:
 ./scripts/stop_stack.sh
 ```
 
-### Monitor UI
-- `http://localhost:8000/agent_monitor/`
+### Legacy Reverie mode (optional)
+
+Set `STACK_MODE=reverie` to run the old Django + Reverie environment:
+
+```bash
+STACK_MODE=reverie ./scripts/run_stack.sh
+```
 
 ### Distillation logs
-- Teacher: `reverie/backend_server/distill_logs/teacher.jsonl`
-- Student: `reverie/backend_server/distill_logs/student.jsonl`
-- Monitor state bridge: `reverie/backend_server/distill_logs/monitor_state.json`
+- Social Pet arena teacher log: `model/training/arena/teacher.jsonl`
+- Social Pet arena summary: `model/training/arena/summary.json`
+- Legacy reverie teacher log (fallback): `reverie/backend_server/distill_logs/teacher.jsonl`
 
 ### Smoke tests
 Teacher (OpenAI Responses API):
@@ -214,5 +214,4 @@ We encourage you to support the following three amazing artists who have designe
 * Character design: [ぴぽ (@pipohi)](https://twitter.com/pipohi)
 
 In addition, we thank Lindsay Popowski, Philip Guo, Michael Terry, and the Center for Advanced Study in the Behavioral Sciences (CASBS) community for their insights, discussions, and support. Lastly, all locations featured in Smallville are inspired by real-world locations that Joon has frequented as an undergraduate and graduate student---he thanks everyone there for feeding and supporting him all these years.
-
 

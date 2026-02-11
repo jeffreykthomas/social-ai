@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run the full Social-AI stack:
+# Run the Social-AI stack.
+# Default mode (from config/social-pet-game.json):
+# - Social Pet API (3001)
+# - Social Pet arena simulation loop
+# Optional:
 # - vLLM student server (8001)
-# - Django environment/monitor (8000)
-# - simulation loop
 # - (optional) training watcher for online distillation
+#
+# Legacy mode (STACK_MODE=reverie) keeps the old Django + Reverie simulation path.
 #
 # Logs go to ./logs/*.log, pids to ./run/*.pid
 #
@@ -19,16 +23,19 @@ VENV_BIN="${REPO_ROOT}/venv/bin"
 
 mkdir -p "${REPO_ROOT}/logs" "${REPO_ROOT}/run"
 
-if [[ -f "${VENV_BIN}/activate" ]]; then
-  # shellcheck disable=SC1091
-  source "${VENV_BIN}/activate"
-else
-  echo "Missing venv at ${VENV_BIN}. Create/activate your venv first." >&2
-  exit 1
+echo "Repo: ${REPO_ROOT}"
+
+CONFIG_DEFAULT_MODE="$(node -e 'const fs=require("fs");const p=process.argv[1];try{const c=JSON.parse(fs.readFileSync(p,"utf8"));process.stdout.write((c.arena&&c.arena.defaultMode)||"social_pet");}catch{process.stdout.write("social_pet");}' "${REPO_ROOT}/config/social-pet-game.json" 2>/dev/null || true)"
+if [[ -z "${CONFIG_DEFAULT_MODE}" ]]; then
+  CONFIG_DEFAULT_MODE="social_pet"
 fi
 
-echo "Repo: ${REPO_ROOT}"
-SIM_MODE="${SIM_MODE:-classic_hybrid}"
+if [[ -z "${STACK_MODE:-}" ]] && [[ -n "${SIM_MODE:-}" ]]; then
+  STACK_MODE="reverie"
+fi
+STACK_MODE="${STACK_MODE:-${CONFIG_DEFAULT_MODE}}"
+LEGACY_SIM_MODE="${SIM_MODE:-classic_hybrid}"
+START_VLLM="${START_VLLM:-true}"
 
 pid_alive () {
   local pid="$1"
@@ -39,8 +46,6 @@ pid_alive () {
 # Works on Linux with `ss`. Returns empty string if not found.
 pid_listening_on_port () {
   local port="$1"
-  # Example ss output fragment:
-  # LISTEN ... 0.0.0.0:8000 ... users:(("python",pid=708275,fd=6))
   ss -ltnp 2>/dev/null \
     | awk -v p=":${port}" '
         $0 ~ p && $0 ~ /pid=[0-9]+/ {
@@ -64,6 +69,15 @@ refresh_pidfile_from_port () {
   fi
 }
 
+ensure_venv () {
+  if [[ -f "${VENV_BIN}/activate" ]]; then
+    # shellcheck disable=SC1091
+    source "${VENV_BIN}/activate"
+    return 0
+  fi
+  return 1
+}
+
 start_bg () {
   local name="$1"
   local pidfile="${REPO_ROOT}/run/${name}.pid"
@@ -77,7 +91,6 @@ start_bg () {
       echo "${name}: already running (pid ${existing_pid})"
       return 0
     fi
-    # Stale pidfile: clear it so we can restart or re-discover.
     rm -f "${pidfile}"
   fi
 
@@ -85,7 +98,6 @@ start_bg () {
   nohup "$@" >"${logfile}" 2>&1 &
   echo $! > "${pidfile}"
   echo "${name}: pid $(cat "${pidfile}") (log: ${logfile})"
-  # If the process dies immediately, surface it early.
   sleep 0.5
   if ! kill -0 "$(cat "${pidfile}")" 2>/dev/null; then
     echo "${name}: exited immediately. Check log: ${logfile}" >&2
@@ -108,53 +120,86 @@ wait_http () {
   return 1
 }
 
-# 1) vLLM student (optional but recommended if action is routed to student)
-# If something is already bound to 8001, treat vLLM as running and refresh pidfile.
-if [[ -n "$(pid_listening_on_port 8001 || true)" ]]; then
-  echo "vllm: already listening on :8001"
-  refresh_pidfile_from_port "vllm" 8001
-else
-  start_bg "vllm" bash "${REPO_ROOT}/reverie/backend_server/scripts/run_vllm_qwen_student.sh"
-fi
-wait_http "http://127.0.0.1:8001/health" "vLLM"
-refresh_pidfile_from_port "vllm" 8001
+# Optional: vLLM student service
+if [[ "${START_VLLM}" == "true" ]]; then
+  if [[ -n "$(pid_listening_on_port 8001 || true)" ]]; then
+    echo "vllm: already listening on :8001"
+    refresh_pidfile_from_port "vllm" 8001
+  else
+    if ensure_venv; then
+      start_bg "vllm" bash "${REPO_ROOT}/reverie/backend_server/scripts/run_vllm_qwen_student.sh"
+    else
+      echo "vllm: skipped (missing venv at ${VENV_BIN}; set START_VLLM=false to silence)"
+    fi
+  fi
 
-# 2) Django environment server
-# If something is already bound to 8000, treat Django as running and refresh pidfile.
-if [[ -n "$(pid_listening_on_port 8000 || true)" ]]; then
-  echo "django: already listening on :8000"
+  if [[ -n "$(pid_listening_on_port 8001 || true)" ]]; then
+    wait_http "http://127.0.0.1:8001/health" "vLLM"
+    refresh_pidfile_from_port "vllm" 8001
+  fi
+fi
+
+if [[ "${STACK_MODE}" == "reverie" ]]; then
+  if ! ensure_venv; then
+    echo "Missing venv at ${VENV_BIN}. Create/activate your venv first for STACK_MODE=reverie." >&2
+    exit 1
+  fi
+
+  # Django environment server
+  if [[ -n "$(pid_listening_on_port 8000 || true)" ]]; then
+    echo "django: already listening on :8000"
+    refresh_pidfile_from_port "django" 8000
+  else
+    start_bg "django" bash -lc "cd '${REPO_ROOT}/environment/frontend_server' && python manage.py runserver 0.0.0.0:8000"
+  fi
+  wait_http "http://127.0.0.1:8000/" "Django"
   refresh_pidfile_from_port "django" 8000
-else
-  start_bg "django" bash -lc "cd '${REPO_ROOT}/environment/frontend_server' && python manage.py runserver 0.0.0.0:8000"
-fi
-wait_http "http://127.0.0.1:8000/" "Django"
-refresh_pidfile_from_port "django" 8000
 
-# 3) Simulation loop
-if [[ "${SIM_MODE}" == "predictive" ]]; then
-  # If already running, refresh pidfile via pgrep (pidfile may be stale).
-  if [[ -z "$(pid_listening_on_port 8000 || true)" ]]; then
-    # no-op: sim doesn't bind a port, so just fall through
-    true
-  fi
-  if [[ -z "${SIM_PID:-}" ]]; then
+  # Reverie simulation loop
+  if [[ "${LEGACY_SIM_MODE}" == "predictive" ]]; then
     SIM_PID="$( (pgrep -af "python .*run_sim_loop.py" 2>/dev/null || true) | awk 'NR==1{print $1}')"
-  fi
-  if [[ -n "${SIM_PID:-}" ]] && pid_alive "${SIM_PID}"; then
-    echo "${SIM_PID}" > "${REPO_ROOT}/run/sim.pid"
-    echo "sim: already running (pid ${SIM_PID})"
+    if [[ -n "${SIM_PID:-}" ]] && pid_alive "${SIM_PID}"; then
+      echo "${SIM_PID}" > "${REPO_ROOT}/run/sim.pid"
+      echo "sim: already running (pid ${SIM_PID})"
+    else
+      start_bg "sim" python "${REPO_ROOT}/reverie/backend_server/scripts/run_sim_loop.py"
+    fi
   else
-    start_bg "sim" python "${REPO_ROOT}/reverie/backend_server/scripts/run_sim_loop.py"
+    SIM_PID="$( (pgrep -af "python scripts/run_reverie_headless.py" 2>/dev/null || true) | awk 'NR==1{print $1}')"
+    if [[ -n "${SIM_PID:-}" ]] && pid_alive "${SIM_PID}"; then
+      echo "${SIM_PID}" > "${REPO_ROOT}/run/sim.pid"
+      echo "sim: already running (pid ${SIM_PID})"
+    else
+      start_bg "sim" bash -lc "cd '${REPO_ROOT}/reverie/backend_server' && REVERIE_AGENT_MODE='${REVERIE_AGENT_MODE:-hybrid}' python scripts/run_reverie_headless.py"
+    fi
   fi
+
+  echo ""
+  echo "Stack started (legacy reverie mode)."
+  echo "- Sim UI:     http://localhost:8000/simulator_home"
+  echo "- Monitor UI: http://localhost:8000/agent_monitor/"
+  echo "- vLLM:       http://localhost:8001/v1/models"
+  echo "- Logs:       ${REPO_ROOT}/logs/"
+  echo ""
+  exit 0
+fi
+
+# Social Pet mode (default)
+if [[ -n "$(pid_listening_on_port 3001 || true)" ]]; then
+  echo "api: already listening on :3001"
+  refresh_pidfile_from_port "api" 3001
 else
-  # Classic Reverie backend (tile-world). Enable hybrid agent mode by default.
-  SIM_PID="$( (pgrep -af "python scripts/run_reverie_headless.py" 2>/dev/null || true) | awk 'NR==1{print $1}')"
-  if [[ -n "${SIM_PID:-}" ]] && pid_alive "${SIM_PID}"; then
-    echo "${SIM_PID}" > "${REPO_ROOT}/run/sim.pid"
-    echo "sim: already running (pid ${SIM_PID})"
-  else
-    start_bg "sim" bash -lc "cd '${REPO_ROOT}/reverie/backend_server' && REVERIE_AGENT_MODE='${REVERIE_AGENT_MODE:-hybrid}' python scripts/run_reverie_headless.py"
-  fi
+  start_bg "api" bash -lc "cd '${REPO_ROOT}' && yarn dev:api"
+fi
+wait_http "http://127.0.0.1:3001/healthz" "Social Pet API"
+refresh_pidfile_from_port "api" 3001
+
+SIM_PID="$( (pgrep -af "arena:simulate" 2>/dev/null || true) | awk 'NR==1{print $1}')"
+if [[ -n "${SIM_PID:-}" ]] && pid_alive "${SIM_PID}"; then
+  echo "${SIM_PID}" > "${REPO_ROOT}/run/sim.pid"
+  echo "sim: already running (pid ${SIM_PID})"
+else
+  start_bg "sim" bash -lc "cd '${REPO_ROOT}' && while true; do yarn workspace @social-pet/api arena:simulate; sleep \${ARENA_LOOP_SLEEP_SECONDS:-20}; done"
 fi
 
 # 4) Optional: Training watcher (online distillation)
@@ -173,15 +218,15 @@ if [[ "${ENABLE_TRAINING}" == "1" ]]; then
 fi
 
 echo ""
-echo "Stack started."
-echo "- Sim UI:     http://localhost:8000/simulator_home"
-echo "- Monitor UI: http://localhost:8000/agent_monitor/ (needs/monologue/predictions per agent)"
-echo "- vLLM:       http://localhost:8001/v1/models"
+echo "Stack started (social_pet mode)."
+echo "- API:        http://localhost:3001/healthz"
+echo "- Arena loop: running in background (logs/sim.log)"
+if [[ -n "$(pid_listening_on_port 8001 || true)" ]]; then
+  echo "- vLLM:       http://localhost:8001/v1/models"
+fi
 echo "- Logs:       ${REPO_ROOT}/logs/"
 if [[ "${ENABLE_TRAINING}" == "1" ]]; then
   echo "- Training:   watcher active (threshold=${TRAIN_THRESHOLD:-300}, poll=${TRAIN_POLL:-300}s)"
   echo "              log: ${REPO_ROOT}/logs/training.log"
 fi
 echo ""
-
-

@@ -47,6 +47,9 @@ def repo_root() -> Path:
 
 
 def default_teacher_log() -> Path:
+    social_pet = repo_root() / "model" / "training" / "arena" / "teacher.jsonl"
+    if social_pet.exists():
+        return social_pet
     return repo_root() / "reverie" / "backend_server" / "distill_logs" / "teacher.jsonl"
 
 

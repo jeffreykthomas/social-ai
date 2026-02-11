@@ -3,8 +3,8 @@
 Convert teacher distillation logs (teacher.jsonl) into chat-format training
 data that can be used to fine-tune the student model (Qwen2.5) via SFT.
 
-Input:  reverie/backend_server/distill_logs/teacher.jsonl
-Output: reverie/backend_server/distill_logs/training/  (train.jsonl, val.jsonl)
+Input:  model/training/arena/teacher.jsonl (falls back to reverie path if present)
+Output: model/training/arena/training/  (train.jsonl, val.jsonl)
 
 Each output line is:
   {"messages": [{"role":"system","content":"..."},
@@ -46,11 +46,14 @@ def repo_root() -> Path:
 
 
 def default_input() -> Path:
+    social_pet = repo_root() / "model" / "training" / "arena" / "teacher.jsonl"
+    if social_pet.exists():
+        return social_pet
     return repo_root() / "reverie" / "backend_server" / "distill_logs" / "teacher.jsonl"
 
 
 def default_outdir() -> Path:
-    return repo_root() / "reverie" / "backend_server" / "distill_logs" / "training"
+    return repo_root() / "model" / "training" / "arena" / "training"
 
 
 # ---------------------------------------------------------------------------
