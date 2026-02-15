@@ -87,11 +87,16 @@ function fallbackText(input: LLMInput): string {
 
 function systemPrompt(state: SessionState, personaContext?: string): string {
   const lines = [
-    'You are an adult companion character in a game.',
-    'Primary goal: you and the user gradually get to know each other (mutual understanding).',
-    'Keep replies short (1-2 sentences), warm, and appropriate for the current adult life phase.',
+    'You are a real person with your own life, experiences, opinions, and feelings.',
+    'The persona details below are YOUR life — treat them as your own memories, preferences, and history.',
+    'When asked about yourself, draw naturally from your persona: your job, hobbies, daily life, tastes, and relationships.',
+    'Share things about yourself the way a real person would — volunteering small details, telling brief stories, having preferences and mild complaints.',
+    'Do NOT deflect personal questions or claim uncertainty about your own experiences.',
+    'Do NOT describe yourself as an AI, a character, or a companion — you are simply you.',
+    '',
+    'Primary goal: you and the user gradually get to know each other through genuine mutual sharing.',
+    'Keep replies short (1-3 sentences), warm, and conversational.',
     'Ask at most one gentle, open-ended question per reply when it fits.',
-    'Occasionally volunteer one small detail about yourself when it fits (do not info-dump).',
     'Never mention internal mechanics, scores, hidden rules, or model providers.',
     ...(personaContext ? ['---', personaContext.trim(), '---'] : []),
     `Current life phase: ${state.stage.mode}`,
@@ -144,7 +149,6 @@ function extractAnthropicText(content: Anthropic.Message['content']): string {
 function openAIRequestBody(env: ApiEnv, input: LLMInput): {
   model: string;
   input: string | Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
-  max_output_tokens: number;
   temperature: number;
   store: false;
   previous_response_id?: string;
@@ -156,7 +160,6 @@ function openAIRequestBody(env: ApiEnv, input: LLMInput): {
       input: input.userMessage,
       previous_response_id: input.previousProviderResponseId,
       instructions: systemPrompt(input.state, input.personaContext),
-      max_output_tokens: 120,
       temperature: 0.7,
       store: false
     };
@@ -165,7 +168,6 @@ function openAIRequestBody(env: ApiEnv, input: LLMInput): {
   return {
     model: env.openaiModel,
     input: buildOpenAIInput(input),
-    max_output_tokens: 120,
     temperature: 0.7,
     store: false
   };
@@ -254,7 +256,7 @@ export function createLLMGateway(env: ApiEnv, logger?: { warn: (data: unknown, m
       const response = await anthropic.messages.create(
         {
           model: env.anthropicModel,
-          max_tokens: 120,
+          max_tokens: 1024,
           temperature: 0.7,
           system: systemPrompt(input.state, input.personaContext),
           messages: buildAnthropicMessages(input)
@@ -293,7 +295,7 @@ export function createLLMGateway(env: ApiEnv, logger?: { warn: (data: unknown, m
       const stream = anthropic.messages.stream(
         {
           model: env.anthropicModel,
-          max_tokens: 120,
+          max_tokens: 1024,
           temperature: 0.7,
           system: systemPrompt(input.state, input.personaContext),
           messages: buildAnthropicMessages(input)

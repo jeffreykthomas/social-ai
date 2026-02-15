@@ -57,7 +57,7 @@ export function createPersonaRag(
 
       // Always include the compact prompt summary, even if embeddings/index are missing.
       const base = [
-        'Character Prompt Summary (private):',
+        'Your Persona (use as your own identity):',
         doc.prompt_summary.trim(),
         ''
       ];
@@ -82,7 +82,7 @@ export function createPersonaRag(
         .map((m, i) => `${i + 1}) ${m.chunk.content.trim()}`)
         .join('\n\n');
 
-      return [...base, 'Relevant Persona Details (private):', details].join('\n').trim();
+      return [...base, 'Relevant Details About Your Life:', details].join('\n').trim();
     },
 
     async getActivePersonaSummary() {

@@ -1,7 +1,280 @@
+/* ===== Theme variables ===== */
+
 :root {
-  color-scheme: light;
+  /* Page */
+  --page-bg: linear-gradient(180deg, #ecf8ff 0%, #fff8ef 100%);
+
+  /* Card */
+  --card-bg: #ffffffd6;
+  --card-border: #dce7f5;
+
+  /* Text */
+  --text-primary: #1e2d3d;
+  --text-secondary: #425466;
+  --text-muted: #6a87a8;
+  --text-faint: #8ea3b8;
+
+  /* Status bar */
+  --pill-bg: #eef3fb;
+  --pill-color: #3a5068;
+  --pill-health-healthy-bg: #e4f7ec;
+  --pill-health-healthy-color: #1a6e3a;
+  --pill-health-neglected-bg: #fef3e2;
+  --pill-health-neglected-color: #8a5a00;
+  --pill-health-critical-bg: #fde8e8;
+  --pill-health-critical-color: #922;
+
+  /* Chat bubbles */
+  --chat-user-bg: #dce9ff;
+  --chat-user-color: #1a2f4d;
+  --chat-ai-bg: #f4f8ff;
+  --chat-ai-color: #1e2d3d;
+  --chat-ai-border: #e0eaf6;
+  --chat-streaming-border: #c4d8f0;
+  --chat-time-color: #6a87a8;
+  --typing-cursor-color: #5a8abf;
+  --thinking-dots-color: #8ea3b8;
+
+  /* Composer */
+  --composer-bg: #ffffffee;
+  --composer-border: #e4ecf4;
+  --textarea-border: #cfdbe9;
+  --textarea-focus-border: #7fa5df;
+  --textarea-focus-shadow: #dce9ff;
+  --textarea-bg: #ffffff;
+
+  /* Buttons */
+  --send-btn-bg: #4e87ff;
+  --send-btn-hover: #3a6fdf;
+  --send-btn-disabled: #b8cce6;
+  --btn-bg: #edf3ff;
+  --btn-border: #a9bfdd;
+  --icon-btn-bg: #f5f8fc;
+  --icon-btn-border: #c8d6e8;
+  --icon-btn-color: #506070;
+  --icon-btn-hover: #e4ecf5;
+  --icon-btn-active-bg: #dce9ff;
+  --icon-btn-active-border: #7fa5df;
+  --mic-active-bg: #ffe0e0;
+  --mic-active-border: #e88;
+  --mic-active-color: #922;
+  --speaker-active-bg: #e0f0e0;
+  --speaker-active-border: #6b6;
+  --stop-btn-bg: #f5f8fc;
+  --stop-btn-border: #c8d6e8;
+  --stop-btn-color: #506070;
+
+  /* Voice label */
+  --voice-label-color: #708090;
+
+  /* Transcript / notices */
+  --transcript-bg: #eef6ff;
+  --transcript-border: #b8d0ee;
+  --transcript-color: #38516f;
+  --error-color: #9c1c1c;
+
+  /* Debug panel */
+  --debug-toggle-bg: #f4f8fc;
+  --debug-toggle-border: #dce7f5;
+  --debug-toggle-color: #6a87a8;
+  --debug-toggle-hover-bg: #eaf1fa;
+  --debug-toggle-hover-color: #3a5068;
+  --debug-section-border: #e8eff7;
+  --debug-heading-color: #5a7a94;
+  --debug-text-color: #344861;
+
+  /* Events */
+  --event-bg: #fbfdff;
+  --event-border: #d6e3f2;
+  --event-top-color: #425466;
+  --event-meta-color: #58728f;
+
+  /* Knowledge */
+  --knowledge-color: #344861;
+
+  /* Misc */
+  --new-session-btn-bg: #eef3fb;
+}
+
+/* ===== Dark theme ===== */
+
+[data-theme="dark"] {
+  /* Page */
+  --page-bg: linear-gradient(180deg, #0d1117 0%, #161b22 100%);
+
+  /* Card */
+  --card-bg: #161b22e6;
+  --card-border: #30363d;
+
+  /* Text */
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #8b949e;
+  --text-faint: #6e7681;
+
+  /* Status bar */
+  --pill-bg: #21262d;
+  --pill-color: #c9d1d9;
+  --pill-health-healthy-bg: #0d2818;
+  --pill-health-healthy-color: #56d364;
+  --pill-health-neglected-bg: #312a1c;
+  --pill-health-neglected-color: #d29922;
+  --pill-health-critical-bg: #3d1416;
+  --pill-health-critical-color: #f85149;
+
+  /* Chat bubbles */
+  --chat-user-bg: #1a3a5c;
+  --chat-user-color: #c9d1d9;
+  --chat-ai-bg: #21262d;
+  --chat-ai-color: #e6edf3;
+  --chat-ai-border: #30363d;
+  --chat-streaming-border: #3a5068;
+  --chat-time-color: #6e7681;
+  --typing-cursor-color: #58a6ff;
+  --thinking-dots-color: #6e7681;
+
+  /* Composer */
+  --composer-bg: #0d1117ee;
+  --composer-border: #21262d;
+  --textarea-border: #30363d;
+  --textarea-focus-border: #58a6ff;
+  --textarea-focus-shadow: #1a3a5c;
+  --textarea-bg: #0d1117;
+
+  /* Buttons */
+  --send-btn-bg: #388bfd;
+  --send-btn-hover: #58a6ff;
+  --send-btn-disabled: #21262d;
+  --btn-bg: #21262d;
+  --btn-border: #30363d;
+  --icon-btn-bg: #161b22;
+  --icon-btn-border: #30363d;
+  --icon-btn-color: #8b949e;
+  --icon-btn-hover: #21262d;
+  --icon-btn-active-bg: #1a3a5c;
+  --icon-btn-active-border: #58a6ff;
+  --mic-active-bg: #3d1416;
+  --mic-active-border: #f85149;
+  --mic-active-color: #f85149;
+  --speaker-active-bg: #0d2818;
+  --speaker-active-border: #56d364;
+  --stop-btn-bg: #161b22;
+  --stop-btn-border: #30363d;
+  --stop-btn-color: #8b949e;
+
+  /* Voice label */
+  --voice-label-color: #6e7681;
+
+  /* Transcript / notices */
+  --transcript-bg: #161b22;
+  --transcript-border: #30363d;
+  --transcript-color: #c9d1d9;
+  --error-color: #f85149;
+
+  /* Debug panel */
+  --debug-toggle-bg: #161b22;
+  --debug-toggle-border: #30363d;
+  --debug-toggle-color: #8b949e;
+  --debug-toggle-hover-bg: #21262d;
+  --debug-toggle-hover-color: #c9d1d9;
+  --debug-section-border: #21262d;
+  --debug-heading-color: #8b949e;
+  --debug-text-color: #c9d1d9;
+
+  /* Events */
+  --event-bg: #0d1117;
+  --event-border: #30363d;
+  --event-top-color: #8b949e;
+  --event-meta-color: #6e7681;
+
+  /* Knowledge */
+  --knowledge-color: #c9d1d9;
+
+  /* Misc */
+  --new-session-btn-bg: #21262d;
+}
+
+/* Also respect system preference when no explicit theme is set */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg: linear-gradient(180deg, #0d1117 0%, #161b22 100%);
+    --card-bg: #161b22e6;
+    --card-border: #30363d;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #8b949e;
+    --text-faint: #6e7681;
+    --pill-bg: #21262d;
+    --pill-color: #c9d1d9;
+    --pill-health-healthy-bg: #0d2818;
+    --pill-health-healthy-color: #56d364;
+    --pill-health-neglected-bg: #312a1c;
+    --pill-health-neglected-color: #d29922;
+    --pill-health-critical-bg: #3d1416;
+    --pill-health-critical-color: #f85149;
+    --chat-user-bg: #1a3a5c;
+    --chat-user-color: #c9d1d9;
+    --chat-ai-bg: #21262d;
+    --chat-ai-color: #e6edf3;
+    --chat-ai-border: #30363d;
+    --chat-streaming-border: #3a5068;
+    --chat-time-color: #6e7681;
+    --typing-cursor-color: #58a6ff;
+    --thinking-dots-color: #6e7681;
+    --composer-bg: #0d1117ee;
+    --composer-border: #21262d;
+    --textarea-border: #30363d;
+    --textarea-focus-border: #58a6ff;
+    --textarea-focus-shadow: #1a3a5c;
+    --textarea-bg: #0d1117;
+    --send-btn-bg: #388bfd;
+    --send-btn-hover: #58a6ff;
+    --send-btn-disabled: #21262d;
+    --btn-bg: #21262d;
+    --btn-border: #30363d;
+    --icon-btn-bg: #161b22;
+    --icon-btn-border: #30363d;
+    --icon-btn-color: #8b949e;
+    --icon-btn-hover: #21262d;
+    --icon-btn-active-bg: #1a3a5c;
+    --icon-btn-active-border: #58a6ff;
+    --mic-active-bg: #3d1416;
+    --mic-active-border: #f85149;
+    --mic-active-color: #f85149;
+    --speaker-active-bg: #0d2818;
+    --speaker-active-border: #56d364;
+    --stop-btn-bg: #161b22;
+    --stop-btn-border: #30363d;
+    --stop-btn-color: #8b949e;
+    --voice-label-color: #6e7681;
+    --transcript-bg: #161b22;
+    --transcript-border: #30363d;
+    --transcript-color: #c9d1d9;
+    --error-color: #f85149;
+    --debug-toggle-bg: #161b22;
+    --debug-toggle-border: #30363d;
+    --debug-toggle-color: #8b949e;
+    --debug-toggle-hover-bg: #21262d;
+    --debug-toggle-hover-color: #c9d1d9;
+    --debug-section-border: #21262d;
+    --debug-heading-color: #8b949e;
+    --debug-text-color: #c9d1d9;
+    --event-bg: #0d1117;
+    --event-border: #30363d;
+    --event-top-color: #8b949e;
+    --event-meta-color: #6e7681;
+    --knowledge-color: #c9d1d9;
+    --new-session-btn-bg: #21262d;
+  }
+}
+
+/* ===== Base ===== */
+
+:root {
+  color-scheme: light dark;
   font-family: "Avenir Next", "Segoe UI", sans-serif;
-  background: linear-gradient(180deg, #ecf8ff 0%, #fff8ef 100%);
+  background: var(--page-bg);
+  color: var(--text-primary);
 }
 
 * {
@@ -32,8 +305,8 @@ html, body {
 
 .card {
   width: min(860px, 100%);
-  background: #ffffffd6;
-  border: 1px solid #dce7f5;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
   border-radius: 16px;
   padding: 20px;
   backdrop-filter: blur(8px);
@@ -47,7 +320,7 @@ h3 {
 
 .sub {
   margin-top: 8px;
-  color: #425466;
+  color: var(--text-secondary);
 }
 
 /* ===== Chat card ===== */
@@ -84,14 +357,14 @@ h3 {
   font-weight: 600;
   padding: 3px 10px;
   border-radius: 999px;
-  background: #eef3fb;
-  color: #3a5068;
+  background: var(--pill-bg);
+  color: var(--pill-color);
   text-transform: capitalize;
 }
 
-.status-pill.health-healthy { background: #e4f7ec; color: #1a6e3a; }
-.status-pill.health-neglected { background: #fef3e2; color: #8a5a00; }
-.status-pill.health-critical { background: #fde8e8; color: #922; }
+.status-pill.health-healthy { background: var(--pill-health-healthy-bg); color: var(--pill-health-healthy-color); }
+.status-pill.health-neglected { background: var(--pill-health-neglected-bg); color: var(--pill-health-neglected-color); }
+.status-pill.health-critical { background: var(--pill-health-critical-bg); color: var(--pill-health-critical-color); }
 
 /* Chat thread */
 
@@ -110,7 +383,7 @@ h3 {
   flex: 1;
   display: grid;
   place-items: center;
-  color: #8ea3b8;
+  color: var(--text-faint);
   font-size: 15px;
   font-style: italic;
 }
@@ -131,34 +404,34 @@ h3 {
 
 .chat-user {
   align-self: flex-end;
-  background: #dce9ff;
-  color: #1a2f4d;
+  background: var(--chat-user-bg);
+  color: var(--chat-user-color);
   border-bottom-right-radius: 4px;
 }
 
 .chat-time {
   display: block;
   font-size: 11px;
-  color: #6a87a8;
+  color: var(--chat-time-color);
   margin-top: 4px;
   text-align: right;
 }
 
 .chat-ai {
   align-self: flex-start;
-  background: #f4f8ff;
-  color: #1e2d3d;
-  border: 1px solid #e0eaf6;
+  background: var(--chat-ai-bg);
+  color: var(--chat-ai-color);
+  border: 1px solid var(--chat-ai-border);
   border-bottom-left-radius: 4px;
 }
 
 .chat-streaming {
-  border-color: #c4d8f0;
+  border-color: var(--chat-streaming-border);
 }
 
 .typing-cursor {
   animation: blink-cursor 0.6s step-end infinite;
-  color: #5a8abf;
+  color: var(--typing-cursor-color);
   font-weight: bold;
 }
 
@@ -175,7 +448,7 @@ h3 {
   display: inline-block;
   font-size: 22px;
   line-height: 1;
-  color: #8ea3b8;
+  color: var(--thinking-dots-color);
 }
 
 .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
@@ -195,8 +468,8 @@ h3 {
   gap: 8px;
   padding: 10px 16px;
   padding-bottom: max(10px, env(safe-area-inset-bottom));
-  background: #ffffffee;
-  border-top: 1px solid #e4ecf4;
+  background: var(--composer-bg);
+  border-top: 1px solid var(--composer-border);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
@@ -211,7 +484,9 @@ h3 {
   flex: 1;
   padding: 10px 14px;
   border-radius: 20px;
-  border: 1px solid #cfdbe9;
+  border: 1px solid var(--textarea-border);
+  background: var(--textarea-bg);
+  color: var(--text-primary);
   resize: none;
   font-size: 15px;
   font-family: inherit;
@@ -223,13 +498,13 @@ h3 {
 
 .composer-row textarea:focus {
   outline: none;
-  border-color: #7fa5df;
-  box-shadow: 0 0 0 2px #dce9ff;
+  border-color: var(--textarea-focus-border);
+  box-shadow: 0 0 0 2px var(--textarea-focus-shadow);
 }
 
 .send-btn {
   border: none;
-  background: #4e87ff;
+  background: var(--send-btn-bg);
   color: white;
   border-radius: 50%;
   width: 42px;
@@ -247,11 +522,11 @@ h3 {
 }
 
 .send-btn:hover:not(:disabled) {
-  background: #3a6fdf;
+  background: var(--send-btn-hover);
 }
 
 .send-btn:disabled {
-  background: #b8cce6;
+  background: var(--send-btn-disabled);
   cursor: default;
 }
 
@@ -270,14 +545,14 @@ h3 {
 
 .voice-label {
   font-size: 11px;
-  color: #708090;
+  color: var(--voice-label-color);
   min-width: 80px;
 }
 
 .icon-btn {
-  border: 1px solid #c8d6e8;
-  background: #f5f8fc;
-  color: #506070;
+  border: 1px solid var(--icon-btn-border);
+  background: var(--icon-btn-bg);
+  color: var(--icon-btn-color);
   border-radius: 50%;
   width: 36px;
   height: 36px;
@@ -289,7 +564,7 @@ h3 {
 }
 
 .icon-btn:hover:not(:disabled) {
-  background: #e4ecf5;
+  background: var(--icon-btn-hover);
 }
 
 .icon-btn:disabled {
@@ -298,19 +573,19 @@ h3 {
 }
 
 .icon-btn.active {
-  background: #dce9ff;
-  border-color: #7fa5df;
+  background: var(--icon-btn-active-bg);
+  border-color: var(--icon-btn-active-border);
 }
 
 .mic-toggle.active {
-  background: #ffe0e0;
-  border-color: #e88;
+  background: var(--mic-active-bg);
+  border-color: var(--mic-active-border);
   animation: pulse-mic 1.5s ease-in-out infinite;
 }
 
 .speaker-toggle.active {
-  background: #e0f0e0;
-  border-color: #6b6;
+  background: var(--speaker-active-bg);
+  border-color: var(--speaker-active-border);
 }
 
 .mic-btn,
@@ -318,16 +593,16 @@ h3 {
   font-size: 11px;
   padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid #c8d6e8;
-  background: #f5f8fc;
-  color: #506070;
+  border: 1px solid var(--stop-btn-border);
+  background: var(--stop-btn-bg);
+  color: var(--stop-btn-color);
   cursor: pointer;
 }
 
 .mic-btn.recording {
-  background: #ffe0e0;
-  border-color: #e88;
-  color: #922;
+  background: var(--mic-active-bg);
+  border-color: var(--mic-active-border);
+  color: var(--mic-active-color);
   animation: pulse-mic 1.5s ease-in-out infinite;
 }
 
@@ -343,16 +618,16 @@ h3 {
 
 .transcript {
   font-size: 13px;
-  color: #38516f;
-  background: #eef6ff;
-  border: 1px dashed #b8d0ee;
+  color: var(--transcript-color);
+  background: var(--transcript-bg);
+  border: 1px dashed var(--transcript-border);
   border-radius: 10px;
   padding: 8px 10px;
   margin: 0 0 4px;
 }
 
 .error {
-  color: #9c1c1c;
+  color: var(--error-color);
   font-size: 13px;
   margin: 4px 0 0;
 }
@@ -370,10 +645,10 @@ h3 {
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
-  color: #6a87a8;
+  color: var(--debug-toggle-color);
   padding: 8px 16px;
-  background: #f4f8fc;
-  border: 1px solid #dce7f5;
+  background: var(--debug-toggle-bg);
+  border: 1px solid var(--debug-toggle-border);
   border-radius: 10px;
   list-style: none;
   user-select: none;
@@ -381,8 +656,8 @@ h3 {
 }
 
 .debug-toggle:hover {
-  background: #eaf1fa;
-  color: #3a5068;
+  background: var(--debug-toggle-hover-bg);
+  color: var(--debug-toggle-hover-color);
 }
 
 .debug-toggle::before {
@@ -403,11 +678,13 @@ h3 {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   border-top: none;
+  overflow-y: auto;
+  max-height: 50vh;
 }
 
 .debug-section {
   padding: 14px 0;
-  border-bottom: 1px solid #e8eff7;
+  border-bottom: 1px solid var(--debug-section-border);
 }
 
 .debug-section:last-child {
@@ -418,7 +695,7 @@ h3 {
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #5a7a94;
+  color: var(--debug-heading-color);
   margin-bottom: 10px;
 }
 
@@ -432,7 +709,7 @@ h3 {
   margin: 6px 0 0;
   padding-left: 18px;
   font-size: 13px;
-  color: #344861;
+  color: var(--knowledge-color);
 }
 
 .knowledge-list li {
@@ -455,8 +732,8 @@ h3 {
 }
 
 .mode-grid button.active {
-  background: #dce9ff;
-  border-color: #7fa5df;
+  background: var(--icon-btn-active-bg);
+  border-color: var(--icon-btn-active-border);
 }
 
 .latency-row {
@@ -464,7 +741,7 @@ h3 {
   gap: 8px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   font-size: 13px;
-  color: #344861;
+  color: var(--debug-text-color);
 }
 
 .transport-row {
@@ -473,7 +750,7 @@ h3 {
   gap: 8px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   font-size: 13px;
-  color: #344861;
+  color: var(--debug-text-color);
 }
 
 .status-grid {
@@ -505,8 +782,9 @@ progress {
 }
 
 button {
-  border: 1px solid #a9bfdd;
-  background: #edf3ff;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--text-primary);
   border-radius: 999px;
   padding: 8px 12px;
   cursor: pointer;
@@ -521,7 +799,9 @@ textarea {
   width: 100%;
   padding: 10px;
   border-radius: 10px;
-  border: 1px solid #cfdbe9;
+  border: 1px solid var(--textarea-border);
+  background: var(--textarea-bg);
+  color: var(--text-primary);
 }
 
 .events {
@@ -530,9 +810,9 @@ textarea {
 }
 
 .event {
-  border: 1px solid #d6e3f2;
+  border: 1px solid var(--event-border);
   border-radius: 10px;
-  background: #fbfdff;
+  background: var(--event-bg);
   padding: 10px;
   display: grid;
   gap: 6px;
@@ -543,12 +823,51 @@ textarea {
   justify-content: space-between;
   gap: 8px;
   font-size: 12px;
-  color: #425466;
+  color: var(--event-top-color);
 }
 
 .event-meta {
   font-size: 12px;
-  color: #58728f;
+  color: var(--event-meta-color);
+}
+
+/* ===== Theme toggle ===== */
+
+.theme-toggle {
+  border: 1px solid var(--icon-btn-border);
+  background: var(--icon-btn-bg);
+  color: var(--icon-btn-color);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  padding: 0;
+  margin-left: auto;
+}
+
+.theme-toggle:hover {
+  background: var(--icon-btn-hover);
+}
+
+.theme-toggle svg {
+  display: block;
+}
+
+.theme-toggle-floating {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 10;
+}
+
+/* ===== New session button inside status bar ===== */
+
+.new-session-btn {
+  background: var(--new-session-btn-bg);
 }
 
 @media (max-width: 700px) {

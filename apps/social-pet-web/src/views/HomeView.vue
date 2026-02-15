@@ -9,6 +9,49 @@ import { ConvaiClient } from '../features/pet-core/services/convaiClient';
 
 const store = useSessionStore();
 
+// ── Dark mode ──────────────────────────────────────────────────────────────
+type ThemePref = 'light' | 'dark' | 'system';
+const THEME_KEY = 'social-pet-theme';
+
+function getStoredTheme(): ThemePref {
+  const stored = localStorage.getItem(THEME_KEY);
+  if (stored === 'light' || stored === 'dark') return stored;
+  return 'system';
+}
+
+function applyTheme(pref: ThemePref): void {
+  const root = document.documentElement;
+  if (pref === 'system') {
+    root.removeAttribute('data-theme');
+  } else {
+    root.setAttribute('data-theme', pref);
+  }
+}
+
+function isDarkActive(pref: ThemePref): boolean {
+  if (pref === 'dark') return true;
+  if (pref === 'light') return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+const themePref = ref<ThemePref>(getStoredTheme());
+const isDark = computed(() => isDarkActive(themePref.value));
+
+function toggleTheme(): void {
+  // Cycle: system → dark → light → system
+  const next: Record<ThemePref, ThemePref> = {
+    system: 'dark',
+    dark: 'light',
+    light: 'system'
+  };
+  themePref.value = next[themePref.value];
+  localStorage.setItem(THEME_KEY, themePref.value);
+  applyTheme(themePref.value);
+}
+
+// Apply on mount and watch for system changes
+applyTheme(themePref.value);
+
 const speakerOn = ref(false);  // AI voice output (ConvAI TTS)
 const micOn = ref(false);       // User mic input
 const isRecording = ref(false);
@@ -564,6 +607,31 @@ onBeforeUnmount(() => {
 
 <template>
   <main class="page">
+    <!-- Theme toggle (always visible, top-right corner) -->
+    <button
+      v-if="!store.session"
+      type="button"
+      class="theme-toggle theme-toggle-floating"
+      @click="toggleTheme"
+      :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+      :title="'Theme: ' + themePref"
+    >
+      <svg v-if="isDark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+
     <!-- ===== User-facing screen ===== -->
     <section class="card chat-card">
       <AudioAura3D
@@ -581,6 +649,30 @@ onBeforeUnmount(() => {
         <span class="status-pill" :class="'health-' + store.session.health.status">{{ store.session.health.status }} {{ store.session.health.value }}</span>
         <span class="status-pill">Trust {{ store.session.bond.trust.toFixed(2) }}</span>
         <button type="button" class="status-pill new-session-btn" @click="store.newSession()" :disabled="store.loading">New Session</button>
+        <button
+          type="button"
+          class="theme-toggle"
+          @click="toggleTheme"
+          :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+          :title="'Theme: ' + themePref"
+        >
+          <!-- Sun icon (shown in dark mode) -->
+          <svg v-if="isDark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+          <!-- Moon icon (shown in light mode) -->
+          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
       </div>
 
       <!-- Chat thread — only bubbles scroll -->
